@@ -1,4 +1,4 @@
-# Competitive Master (CM)
+# EPX — Engineering Preparation eXperience
 
 A production-grade competitive exam mock test platform built with modern web technologies.
 

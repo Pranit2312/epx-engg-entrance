@@ -1,6 +1,11 @@
 "use client"
 
-const data = [
+import { memo } from "react"
+
+type DataPoint = { day: string; value: number }
+type Props = { data?: DataPoint[] }
+
+const defaultData: DataPoint[] = [
   { day: "Mon", value: 58 },
   { day: "Tue", value: 62 },
   { day: "Wed", value: 55 },
@@ -10,7 +15,7 @@ const data = [
   { day: "Sun", value: 72 },
 ]
 
-export function PerformanceChart() {
+export const PerformanceChart = memo(function PerformanceChart({ data = defaultData }: Props) {
   const width = 260
   const height = 100
   const padding = { top: 10, right: 10, bottom: 20, left: 10 }
@@ -28,7 +33,6 @@ export function PerformanceChart() {
 
   const linePath = points.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ")
   const areaPath = `${linePath} L ${points[points.length - 1].x} ${padding.top + chartH} L ${points[0].x} ${padding.top + chartH} Z`
-
   const peakPoint = points[points.length - 1]
 
   return (
@@ -49,7 +53,7 @@ export function PerformanceChart() {
         <circle cx={peakPoint.x} cy={peakPoint.y} r="4" fill="#a78bfa" stroke="#0a0b1e" strokeWidth="2" />
       </svg>
       <div
-        className="absolute rounded-lg border border-white/[0.08] bg-[#1a1b35] px-2 py-0.5 text-[10px] font-bold text-violet-300"
+        className="absolute rounded-lg border border-border bg-muted px-2 py-0.5 text-[10px] font-bold text-violet-300"
         style={{ left: `${((peakPoint.x / width) * 100) - 8}%`, top: `${((peakPoint.y / height) * 100) - 18}%` }}
       >
         {peakPoint.value}%
@@ -61,4 +65,4 @@ export function PerformanceChart() {
       </div>
     </div>
   )
-}
+})

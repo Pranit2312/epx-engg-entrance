@@ -1,75 +1,147 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 model User {
-  id                            String                             @id @default(cuid())
-  email                         String                             @unique
-  password                      String
-  name                          String?
-  createdAt                     DateTime                           @default(now())
-  updatedAt                     DateTime                           @updatedAt
-  attempts                      Attempt[]
-  answerRecords                 UserMockTestQuestionAttemptAnswer[]
+  id                    String                    @id @default(cuid())
+  email                 String                    @unique
+  password              String
+  name                  String?
+  username              String?                   @unique
+  image                 String?
+  bio                   String?
+  role                  UserRole                  @default(STUDENT)
+  targetExam            ExamType?
+  preferredSubjects     String[]                  @default([])
+  emailNotifications    Boolean                   @default(true)
+  testReminders         Boolean                   @default(true)
+  isPremium             Boolean                   @default(false)
+  premiumPlan           PremiumPlan?
+  premiumStartDate      DateTime?
+  premiumEndDate        DateTime?
+  streak                Int                       @default(0)
+  lastActiveDate        DateTime?
+  city                  String?
+  college               String?
+  createdAt             DateTime                  @default(now())
+  updatedAt             DateTime                  @updatedAt
+  attempts              Attempt[]
+  answerRecords         UserMockTestQuestionAttemptAnswer[]
+  bookmarks             Bookmark[]
+  subscriptions         Subscription[]
+  payments              Payment[]
+  leaderboardEntries    Leaderboard[]
+  notifications         Notification[]
+  supportTickets        SupportTicket[]
+  studyPlans            StudyPlan[]
+  aiRecommendations    AIRecommendation[]
+  chatHistories         ChatHistory[]
+  questionBookmarks     QuestionBookmark[]
+}
+
+model Admin {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model MockTest {
-  id              String      @id @default(cuid())
-  name            String
-  examType        ExamType
-  subject         String
-  duration        Int
-  totalQuestions  Int
-  difficulty      Difficulty
-  description     String?
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
-  questions       Question[]
-  attempts        Attempt[]
+  id             String          @id @default(cuid())
+  name           String
+  examType       ExamType
+  subject        String?
+  duration       Int
+  totalQuestions Int
+  difficulty     Difficulty
+  description    String?
+  marksPerQuestion Int            @default(4)
+  negativeMarking Float           @default(1)
+  isPublished    Boolean         @default(false)
+  isAIGenerated  Boolean         @default(false)
+  createdBy      String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  attempts       Attempt[]
+  questions      Question[]
+  bookmarks      Bookmark[]
+  testSections   TestSection[]
+}
+
+model TestSection {
+  id          String     @id @default(cuid())
+  mockTestId   String
+  subject     String
+  questionCount Int
+  marks       Int
+  mockTest    MockTest   @relation(fields: [mockTestId], references: [id], onDelete: Cascade)
+  questions   Question[]
+
+  @@index([mockTestId])
 }
 
 model Question {
-  id            String    @id @default(cuid())
-  mockTestId    String
-  mockTest      MockTest  @relation(fields: [mockTestId], references: [id], onDelete: Cascade)
-  questionText  String
-  options       String[]
-  correctOption Int
-  explanation   String?
-  order         Int
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id              String          @id @default(cuid())
+  mockTestId      String?
+  testSectionId   String?
+  questionText    String
+  options         String[]
+  correctOption   Int
+  explanation     String?
+  subject         String
+  chapter         String?
+  topic           String?
+  difficulty      Difficulty
+  examType        ExamType
+  isPYQ           Boolean         @default(false)
+  pyqYear         Int?
+  pyqSession       String?
+  order           Int
+  embedding       String
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  mockTest        MockTest?       @relation(fields: [mockTestId], references: [id], onDelete: Cascade)
+  testSection     TestSection?    @relation(fields: [testSectionId], references: [id], onDelete: Cascade)
+  answerRecords   UserMockTestQuestionAttemptAnswer[]
+  questionBookmarks QuestionBookmark[]
+  topicAnalytics  TopicAnalytics[]
+
+  @@index([subject, chapter])
+  @@index([examType, isPYQ])
 }
 
 model Attempt {
-  id                            String                             @id @default(cuid())
-  userId                        String
-  user                          User                               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  mockTestId                    String
-  mockTest                      MockTest                           @relation(fields: [mockTestId], references: [id], onDelete: Cascade)
-  score                         Int
-  correct                       Int
-  incorrect                     Int
-  accuracy                      Float
-  timeTaken                     Int
-  answers                       Json
-  markedForReview               String[]
-  status                        AttemptStatus
-  startedAt                     DateTime
-  submittedAt                   DateTime?
-  createdAt                     DateTime                           @default(now())
-  updatedAt                     DateTime                           @updatedAt
-  answerRecords                 UserMockTestQuestionAttemptAnswer[]
+  id              String                              @id @default(cuid())
+  userId          String
+  mockTestId      String
+  score           Int
+  maxScore        Int
+  correct         Int
+  incorrect       Int
+  unattempted     Int
+  accuracy        Float
+  percentile      Float?
+  rank            Int?
+  timeTaken       Int
+  answers         Json
+  markedForReview String[]
+  status          AttemptStatus
+  startedAt       DateTime
+  submittedAt     DateTime?
+  createdAt       DateTime                            @default(now())
+  updatedAt       DateTime                            @updatedAt
+  mockTest        MockTest                            @relation(fields: [mockTestId], references: [id], onDelete: Cascade)
+  user            User                                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  answerRecords   UserMockTestQuestionAttemptAnswer[]
 
   @@unique([userId, mockTestId])
+  @@index([userId, createdAt])
 }
 
 model UserMockTestQuestionAttemptAnswer {
@@ -78,11 +150,241 @@ model UserMockTestQuestionAttemptAnswer {
   attemptId       String
   questionId      String
   selectedOption  Int?
+  timeSpent       Int?
   markedForReview Boolean  @default(false)
+  isCorrect       Boolean?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   attempt         Attempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  question        Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@index([attemptId])
+  @@index([questionId])
+}
+
+model Bookmark {
+  id        String   @id @default(cuid())
+  userId    String
+  testId    String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  test      MockTest @relation(fields: [testId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, testId])
+}
+
+model QuestionBookmark {
+  id         String   @id @default(cuid())
+  userId     String
+  questionId String
+  notes      String?
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, questionId])
+}
+
+model Subscription {
+  id              String         @id @default(cuid())
+  userId          String
+  plan            PremiumPlan
+  status          SubscriptionStatus
+  startDate       DateTime
+  endDate         DateTime
+  razorpayOrderId String?
+  razorpayPaymentId String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  payments        Payment[]
+
+  @@index([userId])
+}
+
+model Payment {
+  id              String        @id @default(cuid())
+  userId          String
+  subscriptionId  String?
+  amount          Float
+  currency        String        @default("INR")
+  status          PaymentStatus
+  razorpayOrderId String?
+  razorpayPaymentId String?
+  razorpaySignature String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscription    Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Leaderboard {
+  id           String   @id @default(cuid())
+  userId       String
+  examType     ExamType
+  period       LeaderboardPeriod
+  rank         Int
+  score        Int
+  testsTaken   Int
+  accuracy     Float
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, examType, period])
+  @@index([examType, period, rank])
+}
+
+model Notification {
+  id        String             @id @default(cuid())
+  userId    String
+  type      NotificationType
+  title     String
+  message   String
+  read      Boolean            @default(false)
+  actionUrl String?
+  createdAt DateTime           @default(now())
+  user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read])
+}
+
+model SupportTicket {
+  id          String           @id @default(cuid())
+  userId      String
+  subject     String
+  description String
+  status      TicketStatus     @default(OPEN)
+  priority    TicketPriority   @default(MEDIUM)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+}
+
+model StudyPlan {
+  id          String   @id @default(cuid())
+  userId      String
+  title       String
+  description String?
+  planData    Json
+  startDate   DateTime
+  endDate     DateTime
+  isAIGenerated Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model AIRecommendation {
+  id          String   @id @default(cuid())
+  userId      String
+  type        RecommendationType
+  content     Json
+  reason      String?
+  priority    Int      @default(0)
+  isViewed    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isViewed])
+}
+
+model ChatHistory {
+  id        String   @id @default(cuid())
+  userId    String
+  role      String
+  content   String
+  context   Json?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+model TopicAnalytics {
+  id          String   @id @default(cuid())
+  userId      String
+  questionId  String
+  subject     String
+  chapter     String
+  topic       String?
+  accuracy    Float
+  attempts    Int
+  timeAvg     Int
+  weakArea    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  question    Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@index([userId, subject, chapter])
+}
+
+enum UserRole {
+  STUDENT
+  ADMIN
+}
+
+enum PremiumPlan {
+  FREE
+  PREMIUM
+  PREMIUM_PLUS
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELLED
+  EXPIRED
+  PENDING
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+enum LeaderboardPeriod {
+  DAILY
+  WEEKLY
+  MONTHLY
+  ALL_TIME
+}
+
+enum NotificationType {
+  NEW_TEST
+  PREMIUM_OFFER
+  STREAK_REMINDER
+  AI_RECOMMENDATION
+  SYSTEM
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum RecommendationType {
+  TEST
+  CHAPTER
+  QUESTION
+  STUDY_PLAN
 }
 
 enum ExamType {

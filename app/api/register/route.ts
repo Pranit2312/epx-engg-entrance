@@ -21,6 +21,10 @@ export async function POST(request: Request) {
       password,
     })
 
+    if (!user) {
+      return NextResponse.json({ error: "Failed to create user. Database may be unavailable." }, { status: 503 })
+    }
+
     return NextResponse.json(
       {
         user: {

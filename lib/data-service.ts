@@ -1,184 +1,191 @@
 import bcrypt from "bcryptjs"
-import type { Prisma } from "@prisma/client"
+import type { Prisma, ExamType } from "@prisma/client"
+import { prisma } from "@/lib/prisma"
+import type { UpdateProfileInput, UpdateSettingsInput, UserProfile } from "@/lib/profile-types"
 import { mockTests as fallbackTests } from "@/lib/data/mock-tests"
-import { generateMockQuestions } from "@/lib/data/mock-questions"
-import { prisma, isPrismaAvailable } from "@/lib/prisma"
+import { analyticsService } from "@/services/analytics-service"
 
-type StoredUser = {
-  id: string
-  name?: string | null
-  email: string
-  password: string
-  createdAt: Date
-  updatedAt: Date
+const emptyStats: UserProfile["stats"] = {
+  testsAttempted: 0,
+  averageScore: 0,
+  averageAccuracy: 0,
+  bestScore: 0,
+  currentStreak: 0,
 }
 
-type StoredAttempt = {
-  id: string
-  userId: string
-  mockTestId: string
-  score: number
-  correct: number
-  incorrect: number
-  accuracy: number
-  timeTaken: number
-  answers: Record<string, number>
-  markedForReview: string[]
-  status: "IN_PROGRESS" | "COMPLETED" | "ABANDONED"
-  startedAt: Date
-  submittedAt?: Date | null
-  createdAt: Date
-  updatedAt: Date
+function generateUsername(email: string) {
+  const base = email.split("@")[0].replace(/[^a-zA-Z0-9_]/g, "_").toLowerCase()
+  return base || `user_${Date.now()}`
 }
 
-type StoredAnswerRecord = {
-  id: string
-  userId: string
-  attemptId: string
-  questionId: string
-  selectedOption?: number | null
-  markedForReview: boolean
-  createdAt: Date
-  updatedAt: Date
-}
-
-const memoryState = {
-  users: [] as StoredUser[],
-  attempts: [] as StoredAttempt[],
-  answerRecords: [] as StoredAnswerRecord[],
-}
-
-let seeded = false
-
-function ensureSeeded() {
-  if (seeded) return
-
-  memoryState.users = []
-  memoryState.attempts = []
-  memoryState.answerRecords = []
-  seeded = true
-}
-
-function toMockTest(test: (typeof fallbackTests)[number]) {
+function toProfileUser(user: any, stats: UserProfile["stats"]): UserProfile {
   return {
-    ...test,
-    description: test.description ?? "Premium practice test",
+    id: user.id ?? "",
+    email: user.email ?? "",
+    name: user.name ?? null,
+    username: user.username ?? null,
+    image: user.image ?? null,
+    bio: user.bio ?? null,
+    targetExam: user.targetExam ?? null,
+    preferredSubjects: user.preferredSubjects ?? [],
+    emailNotifications: user.emailNotifications ?? true,
+    testReminders: user.testReminders ?? true,
+    createdAt: user.createdAt?.toISOString?.() ?? new Date().toISOString(),
+    updatedAt: user.updatedAt?.toISOString?.() ?? new Date().toISOString(),
+    stats,
+  }
+}
+
+async function getProfileStats(userId: string): Promise<UserProfile["stats"]> {
+  try {
+    const dashboard = await getDashboardData(userId)
+    const attempts = await getAttemptsForUser(userId)
+    const bestScore = attempts.length > 0 ? Math.max(...attempts.map((a) => a.score)) : 0
+    const streak = attempts.length > 0 ? analyticsService.calculateStreak(attempts) : 0
+    return {
+      testsAttempted: dashboard.testsAttempted,
+      averageScore: dashboard.averageScore,
+      averageAccuracy: dashboard.averageAccuracy,
+      bestScore,
+      currentStreak: streak,
+    }
+  } catch {
+    return { ...emptyStats }
+  }
+}
+
+export async function findUserById(id: string) {
+  try {
+    return await prisma.user.findUnique({ where: { id } })
+  } catch {
+    return null
   }
 }
 
 export async function findUserByEmail(email: string) {
-  if (!isPrismaAvailable()) {
-    ensureSeeded()
-    return memoryState.users.find((user) => user.email.toLowerCase() === email.toLowerCase()) ?? null
+  try {
+    return await prisma.user.findUnique({ where: { email } })
+  } catch {
+    return null
   }
+}
 
-  return prisma.user.findUnique({ where: { email } })
+async function findUserByUsername(username: string) {
+  try {
+    return await prisma.user.findUnique({ where: { username } })
+  } catch {
+    return null
+  }
 }
 
 export async function createUser(input: { email: string; password: string; name?: string | null }) {
-  if (!isPrismaAvailable()) {
-    ensureSeeded()
-    const existing = memoryState.users.find((user) => user.email.toLowerCase() === input.email.toLowerCase())
-    if (existing) {
-      throw new Error("User already exists")
-    }
-
+  try {
     const hashedPassword = await bcrypt.hash(input.password, 12)
-    const user: StoredUser = {
-      id: `user_${Date.now()}`,
-      email: input.email,
-      name: input.name ?? null,
-      password: hashedPassword,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    }
-    memoryState.users.push(user)
-    return user
+    const username = generateUsername(input.email)
+    return await prisma.user.create({
+      data: {
+        email: input.email,
+        password: hashedPassword,
+        name: input.name ?? null,
+        username,
+        role: 'STUDENT',
+      },
+    })
+  } catch {
+    return null
   }
-
-  const hashedPassword = await bcrypt.hash(input.password, 12)
-  return prisma.user.create({
-    data: {
-      email: input.email,
-      password: hashedPassword,
-      name: input.name ?? null,
-    },
-  })
 }
 
 export async function verifyPassword(candidatePassword: string, storedHash: string) {
-  return bcrypt.compare(candidatePassword, storedHash)
+  try {
+    return await bcrypt.compare(candidatePassword, storedHash)
+  } catch {
+    return false
+  }
 }
 
 export async function getTests() {
-  if (!isPrismaAvailable()) {
-    ensureSeeded()
-    return fallbackTests.map(toMockTest)
+  try {
+    const tests = await prisma.mockTest.findMany({
+      orderBy: { createdAt: "asc" },
+    })
+    if (tests.length > 0) return tests
+    const createdTests = await Promise.all(
+      fallbackTests.map(async (test) => {
+        return prisma.mockTest.create({
+          data: {
+            name: test.name,
+            examType: test.examType as any,
+            subject: test.subject as any,
+            duration: test.duration,
+            totalQuestions: test.totalQuestions,
+            difficulty: test.difficulty as any,
+            description: test.description ?? null,
+          },
+        })
+      })
+    )
+    return createdTests
+  } catch {
+    return fallbackTests as any
   }
-
-  const tests = await prisma.mockTest.findMany({
-    orderBy: { createdAt: "asc" },
-  })
-
-  if (tests.length > 0) {
-    return tests
-  }
-
-  return fallbackTests.map(toMockTest)
 }
 
 export async function getTestById(id: string) {
-  if (!isPrismaAvailable()) {
-    ensureSeeded()
-    return fallbackTests.find((test) => test.id === id) ? toMockTest(fallbackTests.find((test) => test.id === id)!) : null
+  try {
+    return await prisma.mockTest.findUnique({ where: { id } })
+  } catch {
+    return null
   }
-
-  const test = await prisma.mockTest.findUnique({ where: { id } })
-  return test
 }
 
 export async function getQuestionsForTest(testId: string, count: number) {
-  return generateMockQuestions(count)
+  try {
+    const { generateMockQuestions } = await import("@/lib/data/mock-questions")
+    return generateMockQuestions(count)
+  } catch {
+    return []
+  }
 }
 
 export async function getDashboardData(userId: string) {
-  const attempts = await getAttemptsForUser(userId)
-  const tests = await getTests()
-  const attemptedTests = attempts.length
-  const averageScore = attemptedTests > 0 ? Math.round(attempts.reduce((sum, item) => sum + item.score, 0) / attemptedTests) : 0
-  const averageAccuracy = attemptedTests > 0 ? Math.round(attempts.reduce((sum, item) => sum + item.accuracy, 0) / attemptedTests) : 0
-
-  return {
-    totalTests: tests.length,
-    testsAttempted: attemptedTests,
-    averageScore,
-    averageAccuracy,
-    recentTests: attempts.slice(0, 3),
-    recommendedTests: tests.slice(0, 3),
+  try {
+    const attempts = await getAttemptsForUser(userId)
+    const tests = await getTests()
+    const attemptedTests = attempts.length
+    const averageScore = attemptedTests > 0 ? Math.round(attempts.reduce((sum, item) => sum + item.score, 0) / attemptedTests) : 0
+    const averageAccuracy = attemptedTests > 0 ? Math.round(attempts.reduce((sum, item) => sum + item.accuracy, 0) / attemptedTests) : 0
+    return {
+      totalTests: tests.length,
+      testsAttempted: attemptedTests,
+      averageScore,
+      averageAccuracy,
+      recentTests: attempts.slice(0, 3),
+      recommendedTests: tests.slice(0, 3),
+    }
+  } catch {
+    return { totalTests: 0, testsAttempted: 0, averageScore: 0, averageAccuracy: 0, recentTests: [], recommendedTests: [] }
   }
 }
 
 export async function getAttemptsForUser(userId: string) {
-  if (!isPrismaAvailable()) {
-    ensureSeeded()
-    return memoryState.attempts.filter((attempt) => attempt.userId === userId).sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+  try {
+    return await prisma.attempt.findMany({
+      where: { userId },
+      orderBy: { createdAt: "desc" },
+      include: { mockTest: true },
+    })
+  } catch {
+    return []
   }
-
-  const attempts = await prisma.attempt.findMany({
-    where: { userId },
-    orderBy: { createdAt: "desc" },
-  })
-
-  return attempts
 }
 
 export async function getAttemptById(id: string) {
-  if (!isPrismaAvailable()) {
-    ensureSeeded()
-    return memoryState.attempts.find((attempt) => attempt.id === id) ?? null
+  try {
+    return await prisma.attempt.findUnique({ where: { id } })
+  } catch {
+    return null
   }
-
-  return prisma.attempt.findUnique({ where: { id } })
 }
 
 export async function submitAttempt(input: {
@@ -187,6 +194,7 @@ export async function submitAttempt(input: {
   score: number
   correct: number
   incorrect: number
+  totalQuestions: number
   accuracy: number
   timeTaken: number
   answers: Record<string, number>
@@ -195,59 +203,116 @@ export async function submitAttempt(input: {
   startedAt: Date
   submittedAt?: Date | null
 }) {
-  if (!isPrismaAvailable()) {
-    ensureSeeded()
-    const attempt: StoredAttempt = {
-      id: `attempt_${Date.now()}`,
-      userId: input.userId,
-      mockTestId: input.mockTestId,
-      score: input.score,
-      correct: input.correct,
-      incorrect: input.incorrect,
-      accuracy: input.accuracy,
-      timeTaken: input.timeTaken,
-      answers: input.answers,
-      markedForReview: input.markedForReview,
-      status: input.status ?? "COMPLETED",
-      startedAt: input.startedAt,
-      submittedAt: input.submittedAt ?? new Date(),
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    }
-
-    memoryState.attempts.push(attempt)
-
-    Object.entries(input.answers).forEach(([questionId, selectedOption]) => {
-      memoryState.answerRecords.push({
-        id: `answer_${Date.now()}_${questionId}`,
+  try {
+    const test = await prisma.mockTest.findUnique({ where: { id: input.mockTestId } })
+    const marksPerQuestion = test?.marksPerQuestion ?? 4
+    const negativeMarking = test?.negativeMarking ?? 1
+    const rawScore = input.correct * marksPerQuestion - input.incorrect * negativeMarking
+    const maxPossibleScore = input.totalQuestions * marksPerQuestion
+    const scoreAsPercentage = maxPossibleScore > 0 ? Math.round((rawScore / maxPossibleScore) * 100) : 0
+    const unattempted = input.totalQuestions - input.correct - input.incorrect
+    return await prisma.attempt.create({
+      data: {
         userId: input.userId,
-        attemptId: attempt.id,
-        questionId,
-        selectedOption,
-        markedForReview: input.markedForReview.includes(questionId),
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      })
+        mockTestId: input.mockTestId,
+        score: scoreAsPercentage,
+        maxScore: maxPossibleScore,
+        correct: input.correct,
+        incorrect: input.incorrect,
+        unattempted,
+        accuracy: input.accuracy,
+        timeTaken: input.timeTaken,
+        answers: input.answers as unknown as Prisma.JsonObject,
+        status: input.status ?? "COMPLETED",
+        startedAt: input.startedAt,
+        submittedAt: input.submittedAt ?? new Date(),
+      },
     })
-
-    return attempt
+  } catch {
+    return null
   }
+}
 
-  const attempt = await prisma.attempt.create({
-    data: {
-      userId: input.userId,
-      mockTestId: input.mockTestId,
-      score: input.score,
-      correct: input.correct,
-      incorrect: input.incorrect,
-      accuracy: input.accuracy,
-      timeTaken: input.timeTaken,
-      answers: input.answers as unknown as Prisma.JsonObject,
-      status: input.status ?? "COMPLETED",
-      startedAt: input.startedAt,
-      submittedAt: input.submittedAt ?? new Date(),
-    },
-  })
+export async function getUserProfile(userId: string): Promise<UserProfile | null> {
+  try {
+    const user = await findUserById(userId)
+    if (!user) return null
+    const stats = await getProfileStats(userId)
+    return toProfileUser(user, stats)
+  } catch {
+    return null
+  }
+}
 
-  return attempt
+export async function updateUserProfile(userId: string, input: UpdateProfileInput): Promise<UserProfile | null> {
+  try {
+    if (input.username) {
+      const existing = await findUserByUsername(input.username)
+      if (existing && existing.id !== userId) {
+        throw new Error("Username is already taken")
+      }
+    }
+    const updated = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        name: input.name,
+        username: input.username,
+        image: input.image,
+        bio: input.bio,
+        targetExam: input.targetExam as ExamType | null | undefined,
+        preferredSubjects: input.preferredSubjects,
+      },
+    })
+    const stats = await getProfileStats(userId)
+    return toProfileUser(updated, stats)
+  } catch (e) {
+    if (e instanceof Error && e.message === "Username is already taken") throw e
+    return null
+  }
+}
+
+export async function updateUserSettings(userId: string, input: UpdateSettingsInput): Promise<UserProfile | null> {
+  try {
+    const updated = await prisma.user.update({
+      where: { id: userId },
+      data: input,
+    })
+    const stats = await getProfileStats(userId)
+    return toProfileUser(updated, stats)
+  } catch {
+    return null
+  }
+}
+
+export async function changeUserPassword(userId: string, currentPassword: string, newPassword: string) {
+  try {
+    const user = await findUserById(userId)
+    if (!user) throw new Error("User not found")
+    const valid = await verifyPassword(currentPassword, user.password)
+    if (!valid) throw new Error("Current password is incorrect")
+    if (newPassword.length < 6) throw new Error("Password must be at least 6 characters")
+    const hashedPassword = await bcrypt.hash(newPassword, 12)
+    await prisma.user.update({
+      where: { id: userId },
+      data: { password: hashedPassword },
+    })
+    return { success: true }
+  } catch (e) {
+    if (e instanceof Error) throw e
+    return { success: false }
+  }
+}
+
+export async function deleteUserAccount(userId: string, password: string) {
+  try {
+    const user = await findUserById(userId)
+    if (!user) throw new Error("User not found")
+    const valid = await verifyPassword(password, user.password)
+    if (!valid) throw new Error("Password is incorrect")
+    await prisma.user.delete({ where: { id: userId } })
+    return { success: true }
+  } catch (e) {
+    if (e instanceof Error) throw e
+    return { success: false }
+  }
 }

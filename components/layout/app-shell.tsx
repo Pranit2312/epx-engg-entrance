@@ -3,6 +3,7 @@
 import { AppSidebar } from "./app-sidebar"
 import { AppHeader } from "./app-header"
 import { RightPanel } from "./right-panel"
+import { MobileBottomNav } from "./mobile-bottom-nav"
 import { cn } from "@/lib/utils"
 
 type AppShellProps = {
@@ -12,7 +13,7 @@ type AppShellProps = {
 
 export function AppShell({ children, showRightPanel = true }: AppShellProps) {
   return (
-    <div className="min-h-screen bg-[#060714]">
+    <div className="min-h-screen bg-background">
       <div className="pointer-events-none fixed inset-0">
         <div className="absolute top-[-10%] left-[20%] h-[40%] w-[40%] rounded-full bg-blue-600/5 blur-[120px]" />
         <div className="absolute bottom-[10%] right-[10%] h-[35%] w-[35%] rounded-full bg-violet-600/5 blur-[100px]" />
@@ -27,7 +28,7 @@ export function AppShell({ children, showRightPanel = true }: AppShellProps) {
         )}
       >
         <AppHeader />
-        <main className="flex-1 p-4 sm:p-5">{children}</main>
+        <main className="flex-1 p-4 pb-20 sm:p-5 sm:pb-5">{children}</main>
       </div>
 
       {showRightPanel && (
@@ -35,6 +36,8 @@ export function AppShell({ children, showRightPanel = true }: AppShellProps) {
           <RightPanel />
         </div>
       )}
+
+      <MobileBottomNav />
     </div>
   )
 }

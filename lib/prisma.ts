@@ -1,42 +1,53 @@
-import { PrismaClient } from "@prisma/client"
+import { PrismaClient } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
+import { Pool } from "pg";
 
 const globalForPrisma = globalThis as unknown as {
-  prisma?: PrismaClient | null
-  prismaError?: Error
-}
+  prisma?: PrismaClient;
+  prismaPool?: Pool;
+};
 
-export function isPrismaAvailable() {
-  if (globalForPrisma.prismaError) return false
-  const hasUrl = Boolean(process.env.DATABASE_URL && process.env.DATABASE_URL.trim().length > 0 && process.env.DATABASE_URL.startsWith("postgres"))
-  return hasUrl
-}
+let dbAvailable = false;
+let connectionChecked = false;
 
-export function getPrisma(): PrismaClient | null {
-  // If we previously encountered an error, don't retry
-  if (globalForPrisma.prismaError) return null
-
-  // If DATABASE_URL is not available, don't try to create client
-  if (!isPrismaAvailable()) return null
-
-  // Try to get or create the cached client
-  if (!globalForPrisma.prisma) {
-    try {
-      globalForPrisma.prisma = new PrismaClient()
-    } catch (error) {
-      globalForPrisma.prismaError = error as Error
-      return null
-    }
+function getPool(): Pool {
+  if (!globalForPrisma.prismaPool) {
+    globalForPrisma.prismaPool = new Pool({
+      connectionString: process.env.DATABASE_URL,
+      max: 3,
+      connectionTimeoutMillis: 5000,
+      idleTimeoutMillis: 10000,
+    });
   }
-
-  return globalForPrisma.prisma
+  return globalForPrisma.prismaPool;
 }
 
-export const prisma = new Proxy({} as PrismaClient, {
-  get(_target, prop) {
-    const client = getPrisma()
-    if (!client) {
-      throw new Error("Prisma is not available: DATABASE_URL is not configured or is invalid. Using fallback in-memory storage.")
-    }
-    return Reflect.get(client, prop)
-  },
-})
+function getPrismaClient(): PrismaClient {
+  const pool = getPool();
+  const adapter = new PrismaPg(pool);
+  return new PrismaClient({ adapter });
+}
+
+export const prisma = globalForPrisma.prisma ?? getPrismaClient();
+if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
+
+export async function testConnection(): Promise<boolean> {
+  if (process.env.NEXT_PUBLIC_DISABLE_DB === "true") {
+    dbAvailable = false;
+    connectionChecked = true;
+    return false;
+  }
+  if (connectionChecked) return dbAvailable;
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    dbAvailable = true;
+  } catch {
+    dbAvailable = false;
+  }
+  connectionChecked = true;
+  return dbAvailable;
+}
+
+export function isDbAvailable(): boolean {
+  return dbAvailable;
+}

@@ -5,7 +5,7 @@ export const mockTests = [
     examType: "JEE_MAIN",
     subject: "Physics",
     duration: 60,
-    totalQuestions: 30,
+    totalQuestions: 25,
     difficulty: "MEDIUM",
     description: "Comprehensive physics test covering mechanics, thermodynamics, and waves"
   },
@@ -15,7 +15,7 @@ export const mockTests = [
     examType: "JEE_MAIN",
     subject: "Chemistry",
     duration: 60,
-    totalQuestions: 30,
+    totalQuestions: 25,
     difficulty: "MEDIUM",
     description: "Chemistry test covering organic, inorganic, and physical chemistry"
   },
@@ -25,7 +25,7 @@ export const mockTests = [
     examType: "JEE_MAIN",
     subject: "Mathematics",
     duration: 60,
-    totalQuestions: 30,
+    totalQuestions: 25,
     difficulty: "MEDIUM",
     description: "Mathematics test covering calculus, algebra, and coordinate geometry"
   },
@@ -85,9 +85,9 @@ export const mockTests = [
     examType: "JEE_MAIN",
     subject: "All Subjects",
     duration: 180,
-    totalQuestions: 90,
+    totalQuestions: 75,
     difficulty: "MEDIUM",
-    description: "Complete JEE Main mock test with all three subjects"
+    description: "Complete JEE Main mock test — 25 Physics, 25 Chemistry, 25 Mathematics"
   },
   {
     id: "10",
@@ -95,7 +95,7 @@ export const mockTests = [
     examType: "JEE_MAIN",
     subject: "Physics",
     duration: 60,
-    totalQuestions: 30,
+    totalQuestions: 25,
     difficulty: "HARD",
     description: "Advanced physics problems for JEE Main"
   },
@@ -105,7 +105,7 @@ export const mockTests = [
     examType: "JEE_MAIN",
     subject: "Chemistry",
     duration: 60,
-    totalQuestions: 30,
+    totalQuestions: 25,
     difficulty: "EASY",
     description: "Foundation level chemistry test"
   },
@@ -115,7 +115,7 @@ export const mockTests = [
     examType: "JEE_MAIN",
     subject: "Mathematics",
     duration: 60,
-    totalQuestions: 30,
+    totalQuestions: 25,
     difficulty: "HARD",
     description: "Challenging mathematics problems"
   },
@@ -145,9 +145,9 @@ export const mockTests = [
     examType: "JEE_MAIN",
     subject: "All Subjects",
     duration: 180,
-    totalQuestions: 90,
+    totalQuestions: 75,
     difficulty: "HARD",
-    description: "Challenging full length JEE Main test"
+    description: "Challenging full length JEE Main test — 25 each in Physics, Chemistry, Maths"
   },
   {
     id: "16",
@@ -165,7 +165,7 @@ export const mockTests = [
     examType: "JEE_MAIN",
     subject: "Physics",
     duration: 60,
-    totalQuestions: 30,
+    totalQuestions: 25,
     difficulty: "EASY",
     description: "Basic physics concepts test"
   },

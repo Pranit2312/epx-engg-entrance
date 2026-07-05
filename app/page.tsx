@@ -34,16 +34,16 @@ export default function Home() {
             <div className="space-y-8">
               <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/20 bg-blue-500/10 px-4 py-1.5 text-sm font-medium text-blue-400">
                 <Sparkles className="h-3.5 w-3.5" />
-                Premium exam prep, reimagined
+                Engineering Preparation eXperience
               </div>
               <h1 className="text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl leading-[1.1]">
                 Practice smarter and{" "}
                 <span className="text-gradient">score higher</span>
                 <br />
-                with Competitive Master.
+                with EPX.
               </h1>
               <p className="max-w-2xl text-lg text-muted-foreground leading-relaxed">
-                Experience immersive mock tests, live progress insights, and polished study workflows built for serious aspirants.
+                EPX is your AI-powered engineering exam preparation platform — immersive mock tests, live progress insights, and polished study workflows.
               </p>
               <div className="flex flex-col gap-3 sm:flex-row">
                 <Link href="/register">
@@ -53,7 +53,7 @@ export default function Home() {
                   </Button>
                 </Link>
                 <Link href="/tests">
-                  <Button size="lg" variant="outline" className="h-11 text-base rounded-xl border-white/[0.12] bg-white/[0.04] hover:bg-white/[0.08]">
+                  <Button size="lg" variant="outline" className="h-11 text-base rounded-xl border-border/80 bg-muted hover:bg-muted/50">
                     Browse tests
                   </Button>
                 </Link>
@@ -91,7 +91,7 @@ export default function Home() {
                       { label: "Questions", value: "90" },
                       { label: "Difficulty", value: "Medium" },
                     ].map((entry) => (
-                      <div key={entry.label} className="rounded-xl border border-white/[0.06] bg-white/[0.03] px-4 py-3">
+                      <div key={entry.label} className="rounded-xl border border-border bg-card px-4 py-3">
                         <div className="text-xs text-muted-foreground mb-1">{entry.label}</div>
                         <div className="font-semibold">{entry.value}</div>
                       </div>
@@ -107,7 +107,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="section-spacing border-t border-white/[0.06]">
+      <section className="section-spacing border-t border-border">
         <div className="section-container">
           <div className="text-center mb-16">
             <h2 className="section-title">Everything you need to train like a top performer</h2>

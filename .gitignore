@@ -1,8 +1,8 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
-# dependencies
-/node_modules
-/.pnp
+# =============================================
+# DEPENDENCIES
+# =============================================
+node_modules/
+.pnp
 .pnp.*
 .yarn/*
 !.yarn/patches
@@ -10,34 +10,98 @@
 !.yarn/releases
 !.yarn/versions
 
-# testing
-/coverage
+# =============================================
+# NEXT.JS BUILD & CACHE
+# =============================================
+.next/
+out/
+build/
+.next/trace
+.next/static
+*.tsbuildinfo
+next-env.d.ts
 
-# next.js
-/.next/
-/out/
+# =============================================
+# TURBOPACK CACHE
+# =============================================
+.next/dev/cache/turbopack/
+.next/dev/turbopack/
 
-# production
-/build
+# =============================================
+# PRISMA (generated client is in node_modules; migrations are tracked)
+# =============================================
+lib/generated/prisma/
+prisma/generated/
 
-# misc
-.DS_Store
-*.pem
+# =============================================
+# ENVIRONMENT FILES (DO NOT COMMIT — may contain secrets)
+# =============================================
+.env
+.env.local
+.env.development.local
+.env.production.local
+.env.test.local
+.env.example
 
-# debug
+# =============================================
+# LOGS
+# =============================================
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
-.env*
+# =============================================
+# IDE & EDITOR
+# =============================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.vscode/settings.json
+.idea/workspace.xml
 
-# vercel
-.vercel
+# =============================================
+# OS FILES
+# =============================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
 
-# typescript
-*.tsbuildinfo
-next-env.d.ts
+# =============================================
+# TESTING & COVERAGE
+# =============================================
+/coverage/
+/.nyc_output/
+__pycache__/
+*.pyc
 
-/lib/generated/prisma
+# =============================================
+# DEPLOYMENT
+# =============================================
+.vercel/
+.netlify/
+firebase.json
+*.pem
+
+# =============================================
+# TEMPORARY FILES
+# =============================================
+*.tmp
+*.temp
+*.bak
+*.orig
+*~
+
+# =============================================
+# MISC GENERATED / RUNTIME
+# =============================================
+/playwright-report/
+/test-results/

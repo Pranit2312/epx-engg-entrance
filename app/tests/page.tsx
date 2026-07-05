@@ -8,8 +8,11 @@ import { AppShell } from "@/components/layout/app-shell"
 import { WelcomeBanner } from "@/components/dashboard/welcome-banner"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { BookOpen, Clock3, Search, Target, RotateCcw, Bookmark, FileText } from "lucide-react"
+import { BookOpen, Clock3, Search, Target, RotateCcw, Bookmark, FileText, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useBookmarks } from "@/hooks/use-bookmarks"
+import { getExamLabel } from "@/config/exams"
+import { DIFFICULTY_COLORS } from "@/config/scoring"
 
 type TestItem = {
   id: string
@@ -22,25 +25,6 @@ type TestItem = {
   description?: string | null
 }
 
-const getExamTypeLabel = (type: string) => {
-  switch (type) {
-    case "JEE_MAIN": return "JEE Main"
-    case "JEE_ADVANCED": return "JEE Advanced"
-    case "MHT_CET": return "MHT-CET"
-    case "NEET": return "NEET"
-    default: return type
-  }
-}
-
-const getDifficultyStyle = (diff: string) => {
-  switch (diff) {
-    case "EASY": return "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
-    case "MEDIUM": return "border-blue-500/30 bg-blue-500/10 text-blue-400"
-    case "HARD": return "border-red-500/30 bg-red-500/10 text-red-400"
-    default: return "border-white/10 bg-white/5 text-muted-foreground"
-  }
-}
-
 export default function TestsPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
@@ -51,7 +35,7 @@ export default function TestsPage() {
   const [selectedSubject, setSelectedSubject] = useState("all")
   const [selectedDifficulty, setSelectedDifficulty] = useState("all")
   const [sortBy, setSortBy] = useState("latest")
-  const [bookmarked, setBookmarked] = useState<Set<string>>(new Set())
+  const { isBookmarked, toggleBookmark } = useBookmarks()
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/login")
@@ -78,7 +62,7 @@ export default function TestsPage() {
 
   const filteredTests = useMemo(() => {
     let result = tests.filter((test) => {
-      const matchesSearch = `${test.name} ${test.subject} ${getExamTypeLabel(test.examType)}`.toLowerCase().includes(searchQuery.toLowerCase())
+      const matchesSearch = `${test.name} ${test.subject} ${getExamLabel(test.examType)}`.toLowerCase().includes(searchQuery.toLowerCase())
       const matchesExam = selectedExam === "all" || test.examType === selectedExam
       const matchesSubject = selectedSubject === "all" || test.subject === selectedSubject
       const matchesDifficulty = selectedDifficulty === "all" || test.difficulty === selectedDifficulty
@@ -93,15 +77,6 @@ export default function TestsPage() {
     setSelectedExam("all")
     setSelectedSubject("all")
     setSelectedDifficulty("all")
-  }
-
-  const toggleBookmark = (id: string) => {
-    setBookmarked((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
   }
 
   if (status === "loading" || loading) {
@@ -125,7 +100,7 @@ export default function TestsPage() {
         <WelcomeBanner />
 
         {/* Search & Filters */}
-        <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4">
+        <div className="rounded-2xl border border-border bg-card p-4">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
             <div className="relative flex-1">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -133,12 +108,12 @@ export default function TestsPage() {
                 placeholder="Search tests by name or topic..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="h-10 border-white/[0.08] bg-white/[0.04] pl-10"
+                className="h-10 border-border bg-muted pl-10"
               />
             </div>
             <div className="flex flex-wrap gap-2">
               <Select value={selectedExam} onValueChange={(v) => setSelectedExam(v ?? "all")}>
-                <SelectTrigger className="h-10 w-[130px] border-white/[0.08] bg-white/[0.04]">
+                <SelectTrigger className="h-10 w-[130px] border-border bg-muted">
                   <SelectValue placeholder="All Exams" />
                 </SelectTrigger>
                 <SelectContent>
@@ -150,7 +125,7 @@ export default function TestsPage() {
                 </SelectContent>
               </Select>
               <Select value={selectedSubject} onValueChange={(v) => setSelectedSubject(v ?? "all")}>
-                <SelectTrigger className="h-10 w-[130px] border-white/[0.08] bg-white/[0.04]">
+                <SelectTrigger className="h-10 w-[130px] border-border bg-muted">
                   <SelectValue placeholder="All Subjects" />
                 </SelectTrigger>
                 <SelectContent>
@@ -160,7 +135,7 @@ export default function TestsPage() {
                 </SelectContent>
               </Select>
               <Select value={selectedDifficulty} onValueChange={(v) => setSelectedDifficulty(v ?? "all")}>
-                <SelectTrigger className="h-10 w-[130px] border-white/[0.08] bg-white/[0.04]">
+                <SelectTrigger className="h-10 w-[130px] border-border bg-muted">
                   <SelectValue placeholder="All Difficulty" />
                 </SelectTrigger>
                 <SelectContent>
@@ -172,7 +147,7 @@ export default function TestsPage() {
               </Select>
               <button
                 onClick={resetFilters}
-                className="flex h-10 items-center gap-1.5 rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 text-sm text-muted-foreground transition-all hover:bg-white/[0.08] hover:text-foreground"
+                className="flex h-10 items-center gap-1.5 rounded-xl border border-border bg-muted px-3 text-sm text-muted-foreground transition-all hover:bg-muted/50 hover:text-foreground"
               >
                 <RotateCcw className="h-3.5 w-3.5" />
                 Reset
@@ -185,7 +160,7 @@ export default function TestsPage() {
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-bold">All Mock Tests</h2>
           <Select value={sortBy} onValueChange={(v) => setSortBy(v ?? "latest")}>
-            <SelectTrigger className="h-8 w-[120px] border-white/[0.08] bg-white/[0.04] text-xs">
+            <SelectTrigger className="h-8 w-[120px] border-border bg-muted text-xs">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -197,11 +172,11 @@ export default function TestsPage() {
 
         {/* Test Grid */}
         {filteredTests.length === 0 ? (
-          <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-16 text-center">
+          <div className="rounded-2xl border border-border bg-card p-16 text-center">
             <Search className="mx-auto mb-4 h-10 w-10 text-muted-foreground/50" />
             <h3 className="text-lg font-semibold">No tests match your filters</h3>
             <p className="mt-1 text-sm text-muted-foreground">Try adjusting your search or reset the filters.</p>
-            <button onClick={resetFilters} className="mt-4 rounded-xl border border-white/[0.08] px-4 py-2 text-sm text-muted-foreground hover:bg-white/[0.05]">
+            <button onClick={resetFilters} className="mt-4 rounded-xl border border-border px-4 py-2 text-sm text-muted-foreground hover:bg-muted">
               Reset filters
             </button>
           </div>
@@ -210,13 +185,13 @@ export default function TestsPage() {
             {filteredTests.map((test) => (
               <div
                 key={test.id}
-                className="group rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5 transition-all duration-300 hover:border-white/[0.12] hover:bg-white/[0.04] hover:shadow-lg hover:shadow-violet-600/5"
+                className="group rounded-2xl border border-border bg-card p-5 transition-all duration-300 hover:border-border/80 hover:bg-muted hover:shadow-lg hover:shadow-violet-600/5"
               >
                 <div className="mb-3 flex items-start justify-between gap-2">
                   <span className="rounded-full border border-violet-500/30 bg-violet-500/10 px-2.5 py-0.5 text-[10px] font-semibold text-violet-300">
-                    {getExamTypeLabel(test.examType)}
+                    {getExamLabel(test.examType)}
                   </span>
-                  <span className={cn("rounded-full border px-2.5 py-0.5 text-[10px] font-semibold", getDifficultyStyle(test.difficulty))}>
+                  <span className={cn("rounded-full border px-2.5 py-0.5 text-[10px] font-semibold", DIFFICULTY_COLORS[test.difficulty] || "")}>
                     {test.difficulty}
                   </span>
                 </div>
@@ -227,15 +202,15 @@ export default function TestsPage() {
                 )}
 
                 <div className="mt-4 flex flex-wrap gap-2">
-                  <span className="inline-flex items-center gap-1 rounded-lg border border-white/[0.06] bg-white/[0.03] px-2 py-1 text-[10px] text-muted-foreground">
+                  <span className="inline-flex items-center gap-1 rounded-lg border border-border bg-card px-2 py-1 text-[10px] text-muted-foreground">
                     <BookOpen className="h-3 w-3" />
                     {test.subject}
                   </span>
-                  <span className="inline-flex items-center gap-1 rounded-lg border border-white/[0.06] bg-white/[0.03] px-2 py-1 text-[10px] text-muted-foreground">
+                  <span className="inline-flex items-center gap-1 rounded-lg border border-border bg-card px-2 py-1 text-[10px] text-muted-foreground">
                     <Clock3 className="h-3 w-3" />
                     {test.duration} mins
                   </span>
-                  <span className="inline-flex items-center gap-1 rounded-lg border border-white/[0.06] bg-white/[0.03] px-2 py-1 text-[10px] text-muted-foreground">
+                  <span className="inline-flex items-center gap-1 rounded-lg border border-border bg-card px-2 py-1 text-[10px] text-muted-foreground">
                     <FileText className="h-3 w-3" />
                     {test.totalQuestions} Questions
                   </span>
@@ -251,12 +226,12 @@ export default function TestsPage() {
                     onClick={() => toggleBookmark(test.id)}
                     className={cn(
                       "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border transition-all",
-                      bookmarked.has(test.id)
+                      isBookmarked(test.id)
                         ? "border-violet-500/30 bg-violet-500/15 text-violet-400"
-                        : "border-white/[0.08] bg-white/[0.04] text-muted-foreground hover:bg-white/[0.08] hover:text-foreground"
+                        : "border-border bg-muted text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                     )}
                   >
-                    <Bookmark className={cn("h-4 w-4", bookmarked.has(test.id) && "fill-current")} />
+                    <Bookmark className={cn("h-4 w-4", isBookmarked(test.id) && "fill-current")} />
                   </button>
                 </div>
               </div>

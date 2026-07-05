@@ -22,25 +22,27 @@ export default function DashboardPage() {
   const router = useRouter()
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [loading, setLoading] = useState(true)
+  const [hasFetched, setHasFetched] = useState(false)
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/login")
   }, [status, router])
 
   useEffect(() => {
-    if (!session?.user?.id) return
+    if (!session?.user?.id || hasFetched) return
     const loadDashboard = async () => {
+      setHasFetched(true)
       try {
         const response = await fetch("/api/dashboard")
         const data = await response.json()
         setStats(data)
       } catch {
-        setStats({ totalTests: 20, testsAttempted: 5, averageScore: 72, averageAccuracy: 78, recentTests: [], recommendedTests: [] })
+        setStats({ totalTests: 0, testsAttempted: 0, averageScore: 0, averageAccuracy: 0, recentTests: [], recommendedTests: [] })
       }
       setLoading(false)
     }
     loadDashboard()
-  }, [session])
+  }, [session?.user?.id, hasFetched])
 
   if (status === "loading" || loading) {
     return (
@@ -54,24 +56,25 @@ export default function DashboardPage() {
 
   if (!session || !stats) return null
 
+  const hasData = stats.testsAttempted > 0
   const statCards = [
     { label: "Available Tests", value: stats.totalTests, icon: BookOpen, gradient: "from-blue-500 to-cyan-500", change: null },
-    { label: "Tests Attempted", value: stats.testsAttempted, icon: Target, gradient: "from-purple-500 to-pink-500", change: "+2 this week" },
-    { label: "Avg Accuracy", value: `${stats.averageAccuracy}%`, icon: BarChart3, gradient: "from-emerald-500 to-green-500", change: "+5% from last month" },
-    { label: "Avg Score", value: `${stats.averageScore}%`, icon: Award, gradient: "from-amber-500 to-orange-500", change: stats.averageScore > 0 ? "Keep going!" : null },
+    { label: "Tests Attempted", value: stats.testsAttempted, icon: Target, gradient: "from-purple-500 to-pink-500", change: null },
+    { label: "Avg Accuracy", value: hasData ? `${stats.averageAccuracy}%` : "—", icon: BarChart3, gradient: "from-emerald-500 to-green-500", change: null },
+    { label: "Avg Score", value: hasData ? `${stats.averageScore}%` : "—", icon: Award, gradient: "from-amber-500 to-orange-500", change: null },
   ]
 
   return (
     <AppShell>
       <div className="space-y-6">
-        <WelcomeBanner />
+        <WelcomeBanner dashboardStats={stats} />
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {statCards.map((stat, idx) => {
             const Icon = stat.icon
             return (
-              <div key={idx} className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5 transition-all hover:border-white/[0.12] hover:bg-white/[0.04]">
+              <div key={idx} className="rounded-2xl border border-border bg-card p-5 transition-all hover:border-border/80 hover:bg-muted">
                 <div className="mb-3 flex items-start justify-between">
                   <p className="text-sm text-muted-foreground">{stat.label}</p>
                   <div className={`flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br ${stat.gradient}`}>
@@ -107,7 +110,7 @@ export default function DashboardPage() {
             </div>
 
             {stats.recentTests.length === 0 ? (
-              <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-12 text-center">
+              <div className="rounded-2xl border border-border bg-card p-12 text-center">
                 <BookOpen className="mx-auto mb-3 h-10 w-10 text-blue-400/50" />
                 <h3 className="font-semibold">No tests attempted yet</h3>
                 <p className="mt-1 text-sm text-muted-foreground">Start your first test to see your progress here.</p>
@@ -118,7 +121,7 @@ export default function DashboardPage() {
             ) : (
               <div className="space-y-2">
                 {stats.recentTests.map((test) => (
-                  <div key={test.id} className="flex items-center justify-between rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 transition-all hover:border-white/[0.12]">
+                  <div key={test.id} className="flex items-center justify-between rounded-2xl border border-border bg-card p-4 transition-all hover:border-border/80">
                     <div className="flex items-center gap-3">
                       <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500/20 to-purple-500/20">
                         <Brain className="h-5 w-5 text-blue-400" />
@@ -150,7 +153,7 @@ export default function DashboardPage() {
             <div className="space-y-2">
               {stats.recommendedTests.length > 0 ? (
                 stats.recommendedTests.slice(0, 4).map((test) => (
-                  <div key={test.id} className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4">
+                  <div key={test.id} className="rounded-2xl border border-border bg-card p-4">
                     <div className="mb-2 flex items-start justify-between">
                       <div>
                         <p className="text-sm font-semibold">{test.name}</p>
@@ -167,7 +170,7 @@ export default function DashboardPage() {
                       <span className="flex items-center gap-1"><Target className="h-3 w-3" />{test.totalQuestions}Q</span>
                     </div>
                     <Link href={`/test/${test.id}`}>
-                      <button className="flex w-full items-center justify-between rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-xs font-medium text-muted-foreground transition-all hover:bg-white/[0.08] hover:text-foreground">
+                      <button className="flex w-full items-center justify-between rounded-xl border border-border bg-muted px-3 py-2 text-xs font-medium text-muted-foreground transition-all hover:bg-muted/50 hover:text-foreground">
                         Start Test
                         <ChevronRight className="h-3 w-3" />
                       </button>
@@ -176,7 +179,7 @@ export default function DashboardPage() {
                 ))
               ) : (
                 <>
-                  <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4">
+                  <div className="rounded-2xl border border-border bg-card p-4">
                     <div className="mb-3 flex items-center gap-3">
                       <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500/20 to-cyan-500/20">
                         <Flame className="h-5 w-5 text-blue-400" />
@@ -187,12 +190,12 @@ export default function DashboardPage() {
                       </div>
                     </div>
                     <Link href="/practice">
-                      <button className="flex w-full items-center justify-between rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-white/[0.08]">
+                      <button className="flex w-full items-center justify-between rounded-xl border border-border bg-muted px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-muted/50">
                         Practice Now <ChevronRight className="h-3 w-3" />
                       </button>
                     </Link>
                   </div>
-                  <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4">
+                  <div className="rounded-2xl border border-border bg-card p-4">
                     <div className="mb-3 flex items-center gap-3">
                       <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500/20 to-pink-500/20">
                         <BarChart3 className="h-5 w-5 text-purple-400" />
@@ -203,7 +206,7 @@ export default function DashboardPage() {
                       </div>
                     </div>
                     <Link href="/analytics">
-                      <button className="flex w-full items-center justify-between rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-white/[0.08]">
+                      <button className="flex w-full items-center justify-between rounded-xl border border-border bg-muted px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-muted/50">
                         Open Analytics <ChevronRight className="h-3 w-3" />
                       </button>
                     </Link>

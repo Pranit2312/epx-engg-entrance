@@ -1,0 +1,8 @@
+export const FEATURES = {
+  ENABLE_BOOKMARKS: true,
+  ENABLE_ANALYTICS: true,
+  ENABLE_PRACTICE: true,
+  ENABLE_RIGHT_PANEL: true,
+  ENABLE_DASHBOARD_CHARTS: true,
+  SHOW_WELCOME_BANNER: true,
+} as const

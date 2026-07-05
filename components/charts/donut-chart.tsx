@@ -1,18 +1,23 @@
 "use client"
 
-const subjects = [
+import { memo } from "react"
+
+export type DonutData = { name: string; value: number; color: string }
+type Props = { subjects?: DonutData[] }
+
+const defaultSubjects: DonutData[] = [
   { name: "Physics", value: 68, color: "#8b5cf6" },
   { name: "Chemistry", value: 74, color: "#22c55e" },
   { name: "Mathematics", value: 71, color: "#f97316" },
 ]
 
-export function DonutChart() {
+export const DonutChart = memo(function DonutChart({ subjects = defaultSubjects }: Props) {
   const size = 120
   const strokeWidth = 14
   const radius = (size - strokeWidth) / 2
   const circumference = 2 * Math.PI * radius
   const total = subjects.reduce((sum, s) => sum + s.value, 0)
-  const overall = Math.round(total / subjects.length)
+  const overall = subjects.length > 0 ? Math.round(total / subjects.length) : 0
 
   let offset = 0
 
@@ -20,14 +25,7 @@ export function DonutChart() {
     <div className="flex items-center gap-4">
       <div className="relative shrink-0">
         <svg width={size} height={size} className="-rotate-90">
-          <circle
-            cx={size / 2}
-            cy={size / 2}
-            r={radius}
-            fill="none"
-            stroke="rgba(255,255,255,0.06)"
-            strokeWidth={strokeWidth}
-          />
+          <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={strokeWidth} />
           {subjects.map((subject) => {
             const segment = (subject.value / total) * circumference
             const dashArray = `${segment} ${circumference - segment}`
@@ -36,15 +34,9 @@ export function DonutChart() {
             return (
               <circle
                 key={subject.name}
-                cx={size / 2}
-                cy={size / 2}
-                r={radius}
-                fill="none"
-                stroke={subject.color}
-                strokeWidth={strokeWidth}
-                strokeDasharray={dashArray}
-                strokeDashoffset={dashOffset}
-                strokeLinecap="round"
+                cx={size / 2} cy={size / 2} r={radius}
+                fill="none" stroke={subject.color} strokeWidth={strokeWidth}
+                strokeDasharray={dashArray} strokeDashoffset={dashOffset} strokeLinecap="round"
               />
             )
           })}
@@ -67,4 +59,4 @@ export function DonutChart() {
       </ul>
     </div>
   )
-}
+})

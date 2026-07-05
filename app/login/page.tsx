@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Navbar } from "@/components/navbar"
+import { EpxLogo } from "@/components/epx-logo"
 import { Loader2, Mail, Lock, Eye, EyeOff, ArrowRight } from "lucide-react"
 
 export default function LoginPage() {
@@ -62,10 +63,10 @@ export default function LoginPage() {
       <div className="relative flex-1 flex items-center justify-center px-4 py-12">
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
-            <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 to-violet-600 font-bold text-white text-xl mb-4 shadow-lg shadow-blue-600/20">
-              CM
+            <div className="mb-4 flex justify-center">
+              <EpxLogo size="lg" />
             </div>
-            <h1 className="text-2xl font-bold tracking-tight">Welcome back</h1>
+            <h1 className="text-2xl font-bold tracking-tight">Welcome back to EPX</h1>
             <p className="mt-2 text-sm text-muted-foreground">Sign in to continue your preparation journey</p>
           </div>
 

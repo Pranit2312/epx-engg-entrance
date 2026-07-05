@@ -29,6 +29,8 @@ export const authOptions: NextAuthOptions = {
             id: existingUser.id,
             email: existingUser.email,
             name: existingUser.name,
+            role: existingUser.role,
+            image: "image" in existingUser ? (existingUser.image as string | null) : null,
           }
         }
 
@@ -38,10 +40,16 @@ export const authOptions: NextAuthOptions = {
           name: (credentials.name as string | undefined) ?? null,
         })
 
+        if (!createdUser) {
+          throw new Error("Authentication service unavailable")
+        }
+
         return {
           id: createdUser.id,
           email: createdUser.email,
           name: createdUser.name,
+          role: createdUser.role,
+          image: "image" in createdUser ? (createdUser.image as string | null) : null,
         }
       },
     }),
@@ -53,15 +61,27 @@ export const authOptions: NextAuthOptions = {
     strategy: "jwt",
   },
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
       if (user) {
         token.id = user.id
+        token.name = user.name
+        token.email = user.email
+        token.role = user.role
+        token.picture = user.image
+      }
+      if (trigger === "update" && session) {
+        token.name = session.name ?? token.name
+        token.picture = session.image ?? token.picture
       }
       return token
     },
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.id as string
+        session.user.name = token.name as string | null | undefined
+        session.user.email = token.email as string
+        session.user.role = token.role as string
+        session.user.image = token.picture as string | null | undefined
       }
       return session
     },

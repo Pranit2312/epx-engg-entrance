@@ -121,7 +121,7 @@ export default function PYQManagement() {
 
   const years = [...new Set(pyqQuestions.map((q) => q.pyqYear))].sort((a, b) => b - a)
   const subjects = [...new Set(pyqQuestions.map((q) => q.subject))]
-  const examTypes = ["JEE_MAIN", "JEE_ADVANCED", "MHT_CET", "NEET"]
+  const examTypes = ["JEE_MAIN", "JEE_ADVANCED", "MHT_CET", "BITSAT", "VITEEE", "COMEDK", "KCET", "WBJEE", "GUJCET"]
   const sessions = ["January", "April", "July", "October"]
   const difficulties = ["EASY", "MEDIUM", "HARD"]
 

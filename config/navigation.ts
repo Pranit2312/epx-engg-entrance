@@ -10,6 +10,8 @@ export const SIDEBAR_NAV: NavItem[] = [
   { label: "Mock Tests", href: "/tests", icon: "BookOpen" },
   { label: "Practice", href: "/practice", icon: "Brain" },
   { label: "Analytics", href: "/analytics", icon: "BarChart3" },
+  { label: "AI Mentor", href: "/mentor", icon: "Bot", badge: "AI" },
+  { label: "Study Plans", href: "/study-plans", icon: "Calendar", badge: "AI" },
   { label: "Bookmarks", href: "/bookmarks", icon: "Bookmark" },
   { label: "Profile", href: "/profile", icon: "User" },
   { label: "Settings", href: "/settings", icon: "Settings" },

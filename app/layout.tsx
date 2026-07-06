@@ -16,8 +16,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "EPX - Ace Your Exams",
-  description: "EPX — Engineering Preparation eXperience. AI-powered mock tests for JEE, NEET, MHT-CET and other competitive exams.",
-  keywords: ["EPX", "JEE", "NEET", "MHT-CET", "mock tests", "exam preparation", "engineering"],
+  description: "EPX — Engineering Preparation eXperience. AI-powered mock tests for JEE Main, JEE Advanced, MHT-CET, BITSAT and other engineering entrance exams.",
+  keywords: ["EPX", "JEE", "MHT-CET", "BITSAT", "mock tests", "exam preparation", "engineering"],
   applicationName: "EPX",
 };
 

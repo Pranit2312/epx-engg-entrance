@@ -79,15 +79,9 @@ export const analyticsService = {
     const strongTopics = subjectStats.filter((s) => s.averageScore >= 80).map((s) => s.subject)
 
     const attemptedTestIds = new Set(attempts.map((a) => a.mockTestId))
-    const weakSubjects = new Set(weakTopics)
     const recommendedTests = allTests
       .filter((t) => !attemptedTestIds.has(t.id))
-      .sort((a, b) => {
-        const aRelevant = weakSubjects.has(a.subject ?? "") ? 1 : 0
-        const bRelevant = weakSubjects.has(b.subject ?? "") ? 1 : 0
-        return bRelevant - aRelevant
-      })
-      .slice(0, 3)
+      .slice(0, 6)
       .map((t) => ({
         id: t.id,
         name: t.name,

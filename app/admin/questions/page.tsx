@@ -118,7 +118,7 @@ export default function QuestionsManagement() {
 
   const subjects = [...new Set(questions.map((q) => q.subject))]
   const difficulties = ["EASY", "MEDIUM", "HARD"]
-  const examTypes = ["JEE_MAIN", "JEE_ADVANCED", "MHT_CET", "NEET"]
+  const examTypes = ["JEE_MAIN", "JEE_ADVANCED", "MHT_CET", "BITSAT", "VITEEE", "COMEDK", "KCET", "WBJEE", "GUJCET"]
 
   if (loading) {
     return (

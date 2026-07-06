@@ -26,7 +26,6 @@ const subjectColors: Record<string, string> = {
   Physics: "#8b5cf6",
   Chemistry: "#22c55e",
   Mathematics: "#f97316",
-  Biology: "#06b6d4",
 }
 
 export function RightPanel() {

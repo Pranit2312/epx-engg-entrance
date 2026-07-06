@@ -41,6 +41,8 @@ model User {
   aiRecommendations    AIRecommendation[]
   chatHistories         ChatHistory[]
   questionBookmarks     QuestionBookmark[]
+  aiAnalyses            AIAnalysis[]
+  weakTopics            WeakTopic[]
 }
 
 model Admin {
@@ -111,6 +113,7 @@ model Question {
   answerRecords   UserMockTestQuestionAttemptAnswer[]
   questionBookmarks QuestionBookmark[]
   topicAnalytics  TopicAnalytics[]
+  variants        AIVariant[]
 
   @@index([subject, chapter])
   @@index([examType, isPYQ])
@@ -139,6 +142,7 @@ model Attempt {
   mockTest        MockTest                            @relation(fields: [mockTestId], references: [id], onDelete: Cascade)
   user            User                                @relation(fields: [userId], references: [id], onDelete: Cascade)
   answerRecords   UserMockTestQuestionAttemptAnswer[]
+  aiAnalyses      AIAnalysis[]
 
   @@unique([userId, mockTestId])
   @@index([userId, createdAt])
@@ -326,6 +330,58 @@ model TopicAnalytics {
   @@index([userId, subject, chapter])
 }
 
+model AIAnalysis {
+  id              String   @id @default(cuid())
+  userId          String
+  attemptId       String
+  subjectAnalysis Json
+  strengths       String[]
+  weakTopics      String[]
+  recommendations String[]
+  predictedScore  Int?
+  studyPlanRef    String?
+  createdAt       DateTime @default(now())
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  attempt         Attempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, attemptId])
+  @@index([userId, createdAt])
+}
+
+model WeakTopic {
+  id          String   @id @default(cuid())
+  userId      String
+  subject     String
+  chapter     String
+  topic       String?
+  accuracy    Float
+  attempts    Int
+  detectedAt  DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, subject, chapter, topic])
+  @@index([userId, accuracy])
+}
+
+model AIVariant {
+  id              String   @id @default(cuid())
+  originalQuestionId String
+  variantText     String
+  options         String[]
+  correctOption   Int
+  explanation     String
+  subject         String
+  chapter         String?
+  topic           String?
+  difficulty      String   @default("MEDIUM")
+  createdBy       String?
+  createdAt       DateTime @default(now())
+  originalQuestion Question @relation(fields: [originalQuestionId], references: [id], onDelete: Cascade)
+
+  @@index([originalQuestionId])
+}
+
 enum UserRole {
   STUDENT
   ADMIN
@@ -385,13 +441,21 @@ enum RecommendationType {
   CHAPTER
   QUESTION
   STUDY_PLAN
+  QUESTION_REVIEW
+  MENTOR_CHAT
+  WEAK_TOPIC_ALERT
 }
 
 enum ExamType {
   JEE_MAIN
   JEE_ADVANCED
   MHT_CET
-  NEET
+  BITSAT
+  VITEEE
+  COMEDK
+  KCET
+  WBJEE
+  GUJCET
   OTHER
 }
 

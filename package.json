@@ -6,7 +6,9 @@
     "seed": "node --env-file=.env.local --import tsx prisma/seed.ts"
   },
   "scripts": {
+    "predev": "node -e \"try{require('fs').unlinkSync('nul')}catch(e){}\"",
     "dev": "next dev",
+    "clean": "node -e \"try{require('fs').rmSync('.next',{recursive:true,force:true})}catch(e){}\"",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
@@ -15,12 +17,16 @@
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.2",
     "@base-ui/react": "^1.6.0",
+    "@google/generative-ai": "^0.24.1",
+    "@langchain/core": "^1.2.1",
+    "@langchain/google-genai": "^2.2.0",
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
     "bcryptjs": "^3.0.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "dotenv": "^17.4.2",
+    "langchain": "^1.5.2",
     "lucide-react": "^1.23.0",
     "next": "16.2.10",
     "next-auth": "^4.24.14",

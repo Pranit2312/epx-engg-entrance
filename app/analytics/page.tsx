@@ -12,7 +12,6 @@ const subjectGradients: Record<string, string> = {
   Physics: "from-blue-500 to-cyan-500",
   Chemistry: "from-purple-500 to-pink-500",
   Mathematics: "from-amber-500 to-orange-500",
-  Biology: "from-emerald-500 to-green-500",
 }
 
 const defaultGradient = "from-violet-500 to-blue-500"

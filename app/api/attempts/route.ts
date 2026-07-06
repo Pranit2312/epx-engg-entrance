@@ -4,6 +4,18 @@ import { authOptions } from "@/lib/auth"
 import { submitAttempt } from "@/lib/data-service"
 import { attemptRepo } from "@/repositories/attempt-repository"
 
+async function triggerAIAnalysis(userId: string, attemptId: string) {
+  try {
+    await fetch(`${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/api/ai/analyze`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: `next-auth.session-token=${process.env.NEXTAUTH_SECRET ?? ""}` },
+      body: JSON.stringify({ attemptId }),
+    })
+  } catch {
+    // AI analysis is non-blocking — failure should not affect test submission
+  }
+}
+
 export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions)
@@ -57,6 +69,10 @@ export async function POST(request: Request) {
           isCorrect: qa.isCorrect,
         }))
       )
+    }
+
+    if (attempt) {
+      triggerAIAnalysis(session.user.id, attempt.id)
     }
 
     return NextResponse.json({ attempt })

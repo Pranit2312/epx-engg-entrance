@@ -146,7 +146,12 @@ export default function TestBuilder() {
                       <SelectItem value="JEE_MAIN">JEE Main</SelectItem>
                       <SelectItem value="JEE_ADVANCED">JEE Advanced</SelectItem>
                       <SelectItem value="MHT_CET">MHT-CET</SelectItem>
-                      <SelectItem value="NEET">NEET</SelectItem>
+                      <SelectItem value="BITSAT">BITSAT</SelectItem>
+                  <SelectItem value="VITEEE">VITEEE</SelectItem>
+                  <SelectItem value="COMEDK">COMEDK</SelectItem>
+                  <SelectItem value="KCET">KCET</SelectItem>
+                  <SelectItem value="WBJEE">WBJEE</SelectItem>
+                  <SelectItem value="GUJCET">GUJCET</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

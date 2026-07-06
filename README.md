@@ -7,7 +7,7 @@ A production-grade competitive exam mock test platform built with modern web tec
 - **Authentication System**: User registration, login, and session management with NextAuth.js
 - **Landing Page**: Professional hero section with features showcase
 - **Student Dashboard**: Personalized dashboard with stats, recent activity, and recommendations
-- **Mock Tests**: 20+ realistic mock tests for JEE Main, JEE Advanced, MHT-CET, and NEET
+- **Mock Tests**: 20+ realistic mock tests for JEE Main, JEE Advanced, MHT-CET, BITSAT, and other engineering exams
 - **Test Attempt Interface**: Professional exam environment with timer, question navigator, and mark for review
 - **Results Page**: Detailed analytics with score, accuracy, time analysis, and performance insights
 - **Dark Mode**: Full dark mode support with theme toggle

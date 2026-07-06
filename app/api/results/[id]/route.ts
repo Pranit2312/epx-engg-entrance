@@ -69,7 +69,7 @@ export async function GET(
         incorrect: attempt.incorrect,
         accuracy: attempt.accuracy,
         timeTaken: attempt.timeTaken,
-        totalQuestions: questions.length,
+        totalQuestions: (attempt.correct ?? 0) + (attempt.incorrect ?? 0) + (attempt.unattempted ?? 0),
         testName: attempt.mockTest?.name ?? "Mock Test",
         subject: attempt.mockTest?.subject ?? "General",
         submittedAt: attempt.submittedAt,

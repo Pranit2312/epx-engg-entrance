@@ -131,16 +131,6 @@ export const mockTests = [
   },
   {
     id: "14",
-    name: "MHT-CET Biology Mock Test 1",
-    examType: "MHT_CET",
-    subject: "Biology",
-    duration: 90,
-    totalQuestions: 50,
-    difficulty: "EASY",
-    description: "Biology test for MHT-CET medical stream"
-  },
-  {
-    id: "15",
     name: "JEE Main Full Length Test 2",
     examType: "JEE_MAIN",
     subject: "All Subjects",

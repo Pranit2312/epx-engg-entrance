@@ -23,7 +23,7 @@ interface Ticket {
 }
 
 const faqs = [
-  { q: "What is EPX?", a: "EPX is an AI-powered exam preparation platform for engineering (JEE Main, JEE Advanced, MHT-CET) and medical (NEET) entrance exams." },
+  { q: "What is EPX?", a: "EPX is an AI-powered exam preparation platform for engineering entrance exams (JEE Main, JEE Advanced, MHT-CET, BITSAT, COMEDK, and more)." },
   { q: "How do I start a mock test?", a: "Navigate to 'Mock Tests' from the dashboard or sidebar, select a test, and click 'Start Test'. You can filter by exam, subject, and difficulty." },
   { q: "Are the tests timed?", a: "Yes, each test has a set duration based on the exam format. A timer will be visible during the test, and it will auto-submit when time runs out." },
   { q: "How is my score calculated?", a: "Your score is calculated as the percentage of correct answers. Accuracy is calculated as (correct / (correct + incorrect)) x 100." },

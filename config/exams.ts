@@ -2,7 +2,12 @@ export const EXAMS = [
   { value: "JEE_MAIN", label: "JEE Main", shortLabel: "JEE" },
   { value: "JEE_ADVANCED", label: "JEE Advanced", shortLabel: "Adv" },
   { value: "MHT_CET", label: "MHT-CET", shortLabel: "CET" },
-  { value: "NEET", label: "NEET", shortLabel: "NEET" },
+  { value: "BITSAT", label: "BITSAT", shortLabel: "BITS" },
+  { value: "VITEEE", label: "VITEEE", shortLabel: "VIT" },
+  { value: "COMEDK", label: "COMEDK", shortLabel: "COM" },
+  { value: "KCET", label: "KCET", shortLabel: "KCET" },
+  { value: "WBJEE", label: "WBJEE", shortLabel: "WBJ" },
+  { value: "GUJCET", label: "GUJCET", shortLabel: "GUJ" },
   { value: "OTHER", label: "Other", shortLabel: "Other" },
 ] as const
 

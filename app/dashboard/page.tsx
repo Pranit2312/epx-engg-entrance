@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { AppShell } from "@/components/layout/app-shell"
 import { WelcomeBanner } from "@/components/dashboard/welcome-banner"
-import { ArrowRight, BookOpen, Target, TrendingUp, Clock3, Zap, Award, ChevronRight, Calendar, Brain, BarChart3, Flame } from "lucide-react"
+import { ArrowRight, BookOpen, Target, TrendingUp, Clock3, Zap, Award, ChevronRight, Calendar, Brain, BarChart3, Flame, Bot, Sparkles, AlertTriangle } from "lucide-react"
 
 type DashboardStats = {
   totalTests: number
@@ -15,6 +15,12 @@ type DashboardStats = {
   averageAccuracy: number
   recentTests: Array<{ id: string; mockTestId: string; score: number; correct: number; incorrect: number; accuracy: number; timeTaken: number; createdAt: string; mockTest?: { name?: string } }>
   recommendedTests: Array<{ id: string; name: string; subject: string; duration: number; totalQuestions: number; difficulty: string; description?: string | null }>
+  aiInsights?: {
+    recommendations: Array<{ id: string; type: string; content: any; reason: string; priority: number; createdAt: string }>
+    weakTopics: Array<{ subject: string; chapter: string; topic: string | null; accuracy: number; attempts: number }>
+    latestAnalysis: { id: string; strengths: string[]; weakTopics: string[]; recommendations: string[]; createdAt: string } | null
+    activeStudyPlan: { id: string; title: string; planData: any; startDate: string; endDate: string } | null
+  } | null
 }
 
 export default function DashboardPage() {
@@ -92,6 +98,69 @@ export default function DashboardPage() {
             )
           })}
         </div>
+
+        {/* AI Insights */}
+        {stats.aiInsights && (
+          <div className="rounded-2xl border border-violet-500/20 bg-gradient-to-br from-violet-500/5 via-purple-500/5 to-blue-500/5 p-5">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500 to-blue-500">
+                  <Sparkles className="h-4 w-4 text-white" />
+                </div>
+                <h2 className="font-semibold">AI Insights</h2>
+              </div>
+              <Link href="/mentor">
+                <button className="flex items-center gap-1 text-xs text-violet-400 hover:text-violet-300">
+                  AI Mentor <ChevronRight className="h-3 w-3" />
+                </button>
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {stats.aiInsights.latestAnalysis && (
+                <div className="rounded-xl border border-border bg-card/50 p-3">
+                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Strengths</p>
+                  <p className="text-xs">{stats.aiInsights.latestAnalysis.strengths.slice(0, 2).join(", ") || "No data yet"}</p>
+                </div>
+              )}
+              {stats.aiInsights.weakTopics.length > 0 && (
+                <div className="rounded-xl border border-border bg-card/50 p-3">
+                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Need Improvement</p>
+                  <div className="space-y-1">
+                    {stats.aiInsights.weakTopics.slice(0, 3).map((w, i) => (
+                      <div key={i} className="flex items-center gap-1">
+                        <AlertTriangle className={`h-3 w-3 ${w.accuracy < 40 ? "text-red-400" : "text-amber-400"}`} />
+                        <span className="text-xs truncate">{w.chapter}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {stats.aiInsights.recommendations.length > 0 && (
+                <div className="rounded-xl border border-border bg-card/50 p-3">
+                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Recommendations</p>
+                  <p className="text-xs truncate">{stats.aiInsights.recommendations[0]?.reason || "Check AI Mentor for guidance"}</p>
+                </div>
+              )}
+              {stats.aiInsights.activeStudyPlan ? (
+                <div className="rounded-xl border border-border bg-card/50 p-3">
+                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Study Plan</p>
+                  <p className="text-xs font-medium">{stats.aiInsights.activeStudyPlan.title}</p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {new Date(stats.aiInsights.activeStudyPlan.startDate).toLocaleDateString()} - {new Date(stats.aiInsights.activeStudyPlan.endDate).toLocaleDateString()}
+                  </p>
+                </div>
+              ) : (
+                <Link href="/mentor">
+                  <div className="rounded-xl border border-dashed border-violet-500/30 bg-card/50 p-3 hover:bg-card transition-colors cursor-pointer">
+                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">AI Study Plan</p>
+                    <p className="text-xs text-violet-400">Ask AI Mentor to create one →</p>
+                  </div>
+                </Link>
+              )}
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
           {/* Recent Activity */}

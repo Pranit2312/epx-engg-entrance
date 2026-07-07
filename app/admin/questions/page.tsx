@@ -1,7 +1,8 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import Link from "next/link"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -10,7 +11,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Plus, Search, Edit, Trash2, Upload, Filter } from "lucide-react"
-import { prisma } from "@/lib/prisma"
 
 export default function QuestionsManagement() {
   const [questions, setQuestions] = useState<any[]>([])
@@ -19,489 +19,288 @@ export default function QuestionsManagement() {
   const [filterSubject, setFilterSubject] = useState("all")
   const [filterDifficulty, setFilterDifficulty] = useState("all")
   const [filterExam, setFilterExam] = useState("all")
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
-  const [editingQuestion, setEditingQuestion] = useState<any>(null)
-  const [newQuestion, setNewQuestion] = useState({
-    questionText: "",
-    options: ["", "", "", ""],
-    correctOption: 0,
-    explanation: "",
-    subject: "",
-    chapter: "",
-    topic: "",
-    difficulty: "MEDIUM",
-    examType: "JEE_MAIN",
+  const [isAddOpen, setIsAddOpen] = useState(false)
+  const [isEditOpen, setIsEditOpen] = useState(false)
+  const [editQ, setEditQ] = useState<any>(null)
+  const [newQ, setNewQ] = useState({
+    questionText: "", options: ["", "", "", ""], correctOption: 0,
+    explanation: "", subject: "", chapter: "", topic: "",
+    difficulty: "MEDIUM", examType: "JEE_MAIN", imagePath: "",
   })
+  const [uploadResult, setUploadResult] = useState<string | null>(null)
 
-  useEffect(() => {
-    fetchQuestions()
-  }, [])
+  useEffect(() => { fetchQuestions() }, [])
 
   const fetchQuestions = async () => {
     try {
-      const response = await fetch("/api/admin/questions")
-      const data = await response.json()
+      const res = await fetch("/api/admin/questions")
+      const data = await res.json()
       setQuestions(data.questions || [])
-    } catch (error) {
-      console.error("Failed to fetch questions:", error)
-    } finally {
-      setLoading(false)
-    }
+    } catch (e) { console.error("Failed to fetch questions:", e) }
+    finally { setLoading(false) }
   }
 
-  const handleAddQuestion = async () => {
+  const handleAdd = async () => {
     try {
-      const response = await fetch("/api/admin/questions", {
+      const res = await fetch("/api/admin/questions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newQuestion),
+        body: JSON.stringify(newQ),
       })
-      if (response.ok) {
-        setIsAddDialogOpen(false)
-        setNewQuestion({
-          questionText: "",
-          options: ["", "", "", ""],
-          correctOption: 0,
-          explanation: "",
-          subject: "",
-          chapter: "",
-          topic: "",
-          difficulty: "MEDIUM",
-          examType: "JEE_MAIN",
-        })
+      if (res.ok) {
+        setIsAddOpen(false)
+        setNewQ({ questionText: "", options: ["", "", "", ""], correctOption: 0, explanation: "", subject: "", chapter: "", topic: "", difficulty: "MEDIUM", examType: "JEE_MAIN", imagePath: "" })
         fetchQuestions()
       }
-    } catch (error) {
-      console.error("Failed to add question:", error)
-    }
+    } catch (e) { console.error("Failed to add question:", e) }
   }
 
-  const handleEditQuestion = async () => {
+  const handleEdit = async () => {
+    if (!editQ) return
     try {
-      const response = await fetch(`/api/admin/questions/${editingQuestion.id}`, {
+      const res = await fetch(`/api/admin/questions/${editQ.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(editingQuestion),
+        body: JSON.stringify(editQ),
       })
-      if (response.ok) {
-        setIsEditDialogOpen(false)
-        setEditingQuestion(null)
-        fetchQuestions()
-      }
-    } catch (error) {
-      console.error("Failed to update question:", error)
-    }
+      if (res.ok) { setIsEditOpen(false); setEditQ(null); fetchQuestions() }
+    } catch (e) { console.error("Failed to update question:", e) }
   }
 
-  const handleDeleteQuestion = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this question?")) return
+  const handleDelete = async (id: string) => {
+    if (!confirm("Delete this question?")) return
     try {
-      const response = await fetch(`/api/admin/questions/${id}`, {
-        method: "DELETE",
-      })
-      if (response.ok) {
-        fetchQuestions()
-      }
-    } catch (error) {
-      console.error("Failed to delete question:", error)
-    }
+      const res = await fetch(`/api/admin/questions/${id}`, { method: "DELETE" })
+      if (res.ok) fetchQuestions()
+    } catch (e) { console.error("Failed to delete question:", e) }
   }
 
-  const filteredQuestions = questions.filter((q) => {
-    const matchesSearch = q.questionText.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesSubject = filterSubject === "all" || q.subject === filterSubject
-    const matchesDifficulty = filterDifficulty === "all" || q.difficulty === filterDifficulty
-    const matchesExam = filterExam === "all" || q.examType === filterExam
-    return matchesSearch && matchesSubject && matchesDifficulty && matchesExam
+  const handleCSV = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const fd = new FormData()
+    fd.append("file", file); fd.append("type", "csv")
+    try {
+      const res = await fetch("/api/admin/questions/bulk-upload", { method: "POST", body: fd })
+      const data = await res.json()
+      setUploadResult(res.ok ? `Uploaded ${data.uploaded} questions` : `Error: ${data.error}`)
+      if (res.ok) fetchQuestions()
+    } catch { setUploadResult("Upload failed") }
+  }
+
+  const filtered = questions.filter((q) => {
+    return (!searchQuery || q.questionText.toLowerCase().includes(searchQuery.toLowerCase()))
+      && (filterSubject === "all" || q.subject === filterSubject)
+      && (filterDifficulty === "all" || q.difficulty === filterDifficulty)
+      && (filterExam === "all" || q.examType === filterExam)
   })
 
   const subjects = [...new Set(questions.map((q) => q.subject))]
   const difficulties = ["EASY", "MEDIUM", "HARD"]
   const examTypes = ["JEE_MAIN", "JEE_ADVANCED", "MHT_CET", "BITSAT", "VITEEE", "COMEDK", "KCET", "WBJEE", "GUJCET"]
 
-  if (loading) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="text-center">Loading questions...</div>
-      </div>
-    )
-  }
+  if (loading) return <div className="container mx-auto px-4 py-8 text-center">Loading questions...</div>
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-3xl font-bold mb-2">Question Bank</h2>
-          <p className="text-muted-foreground">Manage your question database</p>
+          <h2 className="text-3xl font-bold">Question Bank</h2>
+          <p className="text-muted-foreground text-sm">Manage your question database</p>
         </div>
-        <div className="flex gap-2">
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+        <div className="flex items-center gap-2">
+          <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
             <DialogTrigger>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Question
-              </Button>
+              <Button><Plus className="h-4 w-4 mr-1" />Add Question</Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle>Add New Question</DialogTitle>
+                <DialogTitle>Add Question</DialogTitle>
                 <DialogDescription>Create a new question for the question bank</DialogDescription>
               </DialogHeader>
-              <div className="space-y-4 py-4">
+              <div className="space-y-3 py-2">
                 <div>
-                  <Label htmlFor="questionText">Question</Label>
-                  <Textarea
-                    id="questionText"
-                    value={newQuestion.questionText}
-                    onChange={(e) => setNewQuestion({ ...newQuestion, questionText: e.target.value })}
-                    rows={3}
-                  />
+                  <Label>Question</Label>
+                  <Textarea value={newQ.questionText} onChange={(e) => setNewQ({ ...newQ, questionText: e.target.value })} rows={3} />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label htmlFor="subject">Subject</Label>
-                    <Input
-                      id="subject"
-                      value={newQuestion.subject}
-                      onChange={(e) => setNewQuestion({ ...newQuestion, subject: e.target.value })}
-                    />
+                    <Label>Subject</Label>
+                    <Input value={newQ.subject} onChange={(e) => setNewQ({ ...newQ, subject: e.target.value })} />
                   </div>
                   <div>
-                    <Label htmlFor="chapter">Chapter</Label>
-                    <Input
-                      id="chapter"
-                      value={newQuestion.chapter || ""}
-                      onChange={(e) => setNewQuestion({ ...newQuestion, chapter: e.target.value })}
-                    />
+                    <Label>Chapter</Label>
+                    <Input value={newQ.chapter} onChange={(e) => setNewQ({ ...newQ, chapter: e.target.value })} />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label htmlFor="topic">Topic</Label>
-                    <Input
-                      id="topic"
-                      value={newQuestion.topic}
-                      onChange={(e) => setNewQuestion({ ...newQuestion, topic: e.target.value })}
-                    />
+                    <Label>Topic</Label>
+                    <Input value={newQ.topic} onChange={(e) => setNewQ({ ...newQ, topic: e.target.value })} />
                   </div>
                   <div>
-                    <Label htmlFor="difficulty">Difficulty</Label>
-                    <Select
-                      value={newQuestion.difficulty}
-                      onValueChange={(value) => setNewQuestion({ ...newQuestion, difficulty: value || "MEDIUM" })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
+                    <Label>Difficulty</Label>
+                    <Select value={newQ.difficulty} onValueChange={(v) => setNewQ({ ...newQ, difficulty: v || "MEDIUM" })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        {difficulties.map((d) => (
-                          <SelectItem key={d} value={d}>
-                            {d}
-                          </SelectItem>
-                        ))}
+                        {difficulties.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>
                 </div>
                 <div>
-                  <Label htmlFor="examType">Exam Type</Label>
-                  <Select
-                    value={newQuestion.examType}
-                    onValueChange={(value) => setNewQuestion({ ...newQuestion, examType: value || "JEE_MAIN" })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
+                  <Label>Exam Type</Label>
+                  <Select value={newQ.examType} onValueChange={(v) => setNewQ({ ...newQ, examType: v || "JEE_MAIN" })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {examTypes.map((e) => (
-                        <SelectItem key={e} value={e}>
-                          {e.replace("_", " ")}
-                        </SelectItem>
-                      ))}
+                      {examTypes.map((e) => <SelectItem key={e} value={e}>{e.replace(/_/g, " ")}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
                 <div>
-                  <Label>Options</Label>
-                  <div className="space-y-2">
-                    {newQuestion.options.map((option, index) => (
-                      <div key={index} className="flex items-center gap-2">
-                        <span className="w-8 text-sm font-medium">{String.fromCharCode(65 + index)}.</span>
-                        <Input
-                          value={option}
-                          onChange={(e) => {
-                            const newOptions = [...newQuestion.options]
-                            newOptions[index] = e.target.value
-                            setNewQuestion({ ...newQuestion, options: newOptions })
-                          }}
-                          placeholder={`Option ${index + 1}`}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <Label htmlFor="correctOption">Correct Option</Label>
-                  <Select
-                    value={newQuestion.correctOption.toString()}
-                    onValueChange={(value) => setNewQuestion({ ...newQuestion, correctOption: parseInt(value || "0") })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
+                  <Label>Correct Answer</Label>
+                  <Select value={String(newQ.correctOption)} onValueChange={(v) => setNewQ({ ...newQ, correctOption: parseInt(v || "0") })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {newQuestion.options.map((_, index) => (
-                        <SelectItem key={index} value={index.toString()}>
-                          {String.fromCharCode(65 + index)}
-                        </SelectItem>
-                      ))}
+                      {newQ.options.map((_, i) => <SelectItem key={i} value={String(i)}>{String.fromCharCode(65 + i)}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
                 <div>
-                  <Label htmlFor="explanation">Explanation</Label>
-                  <Textarea
-                    id="explanation"
-                    value={newQuestion.explanation || ""}
-                    onChange={(e) => setNewQuestion({ ...newQuestion, explanation: e.target.value })}
-                    rows={3}
-                  />
+                  <Label>Explanation</Label>
+                  <Textarea value={newQ.explanation} onChange={(e) => setNewQ({ ...newQ, explanation: e.target.value })} rows={3} />
                 </div>
               </div>
               <DialogFooter>
-                <Button onClick={handleAddQuestion}>Add Question</Button>
+                <Button onClick={handleAdd}>Add Question</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
-          <Button variant="outline">
-            <Upload className="h-4 w-4 mr-2" />
-            Bulk Upload
-          </Button>
+
+          <label className="cursor-pointer">
+            <Button variant="outline" type="button">
+              <Upload className="h-4 w-4 mr-1" />CSV Upload
+            </Button>
+            <input type="file" accept=".csv,.json" className="hidden" onChange={handleCSV} />
+          </label>
+
+          <Link href="/admin/import">
+            <Button variant="outline"><Upload className="h-4 w-4 mr-1" />Import</Button>
+          </Link>
         </div>
       </div>
 
+      {uploadResult && (
+        <div className="mb-4 p-3 rounded-xl bg-muted text-sm">{uploadResult}</div>
+      )}
+
       <Card className="mb-6">
         <CardContent className="pt-6">
-          <div className="flex flex-col md:flex-row gap-4">
+          <div className="flex flex-col md:flex-row gap-3">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search questions..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input placeholder="Search questions..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-10" />
             </div>
-            <div className="flex gap-2">
-              <Select value={filterSubject} onValueChange={(value) => setFilterSubject(value || "all")}>
-                <SelectTrigger className="w-[150px]">
-                  <SelectValue placeholder="Subject" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Subjects</SelectItem>
-                  {subjects.map((s) => (
-                    <SelectItem key={s} value={s}>
-                      {s}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={filterDifficulty} onValueChange={(value) => setFilterDifficulty(value || "all")}>
-                <SelectTrigger className="w-[150px]">
-                  <SelectValue placeholder="Difficulty" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Levels</SelectItem>
-                  {difficulties.map((d) => (
-                    <SelectItem key={d} value={d}>
-                      {d}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={filterExam} onValueChange={(value) => setFilterExam(value || "all")}>
-                <SelectTrigger className="w-[150px]">
-                  <SelectValue placeholder="Exam" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Exams</SelectItem>
-                  {examTypes.map((e) => (
-                    <SelectItem key={e} value={e}>
-                      {e.replace("_", " ")}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <Select value={filterSubject} onValueChange={(v) => setFilterSubject(v || "all")}>
+              <SelectTrigger className="w-[150px]"><SelectValue placeholder="Subject" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Subjects</SelectItem>
+                {subjects.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={filterDifficulty} onValueChange={(v) => setFilterDifficulty(v || "all")}>
+              <SelectTrigger className="w-[150px]"><SelectValue placeholder="Difficulty" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Levels</SelectItem>
+                {difficulties.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={filterExam} onValueChange={(v) => setFilterExam(v || "all")}>
+              <SelectTrigger className="w-[150px]"><SelectValue placeholder="Exam" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Exams</SelectItem>
+                {examTypes.map((e) => <SelectItem key={e} value={e}>{e.replace(/_/g, " ")}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
         </CardContent>
       </Card>
 
-      <div className="space-y-4">
-        {filteredQuestions.length === 0 ? (
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-center text-muted-foreground">No questions found</div>
-            </CardContent>
+      <div className="space-y-3">
+        {filtered.length === 0 && <p className="text-muted-foreground text-center py-8">No questions found.</p>}
+        {filtered.map((q) => (
+          <Card key={q.id}>
+            <CardHeader className="pb-2">
+              <div className="flex items-start justify-between">
+                <div className="flex-1 mr-4">
+                  <CardTitle className="text-base font-medium line-clamp-2">{q.questionText}</CardTitle>
+                  <CardDescription className="mt-1">
+                    <span className="mr-3">{q.subject}</span>
+                    {q.chapter && <span className="mr-3">{q.chapter}</span>}
+                    {q.topic && <span className="mr-3">{q.topic}</span>}
+                  </CardDescription>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <Badge variant={q.difficulty === "HARD" ? "destructive" : q.difficulty === "MEDIUM" ? "default" : "secondary"}>{q.difficulty}</Badge>
+                  <Badge variant="outline">{q.examType?.replace(/_/g, " ")}</Badge>
+                  <Button variant="ghost" size="sm" onClick={() => { setEditQ({ ...q }); setIsEditOpen(true) }}>
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => handleDelete(q.id)}>
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
           </Card>
-        ) : (
-          filteredQuestions.map((question) => (
-            <Card key={question.id}>
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <CardTitle className="text-base mb-2">{question.questionText}</CardTitle>
-                    <div className="flex flex-wrap gap-2">
-                      <Badge variant="outline">{question.subject}</Badge>
-                      <Badge
-                        variant={
-                          question.difficulty === "EASY"
-                            ? "secondary"
-                            : question.difficulty === "MEDIUM"
-                            ? "default"
-                            : "destructive"
-                        }
-                      >
-                        {question.difficulty}
-                      </Badge>
-                      <Badge>{question.examType.replace("_", " ")}</Badge>
-                      {question.chapter && <Badge variant="outline">{question.chapter}</Badge>}
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setEditingQuestion(question)
-                        setIsEditDialogOpen(true)
-                      }}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDeleteQuestion(question.id)}
-                    >
-                      <Trash2 className="h-4 w-4 text-red-600" />
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {question.options.map((option: string, index: number) => (
-                    <div
-                      key={index}
-                      className={`p-2 rounded border ${
-                        index === question.correctOption
-                          ? "border-green-500 bg-green-50 dark:bg-green-900/20"
-                          : "border-border"
-                      }`}
-                    >
-                      <span className="font-medium mr-2">{String.fromCharCode(65 + index)}.</span>
-                      {option}
-                    </div>
-                  ))}
-                </div>
-                {question.explanation && (
-                  <div className="mt-4 p-3 bg-muted rounded-lg">
-                    <p className="text-sm font-medium mb-1">Explanation:</p>
-                    <p className="text-sm text-muted-foreground">{question.explanation}</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          ))
-        )}
+        ))}
       </div>
 
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Question</DialogTitle>
-            <DialogDescription>Update the question details</DialogDescription>
+            <DialogDescription>Modify the question details</DialogDescription>
           </DialogHeader>
-          {editingQuestion && (
-            <div className="space-y-4 py-4">
+          {editQ && (
+            <div className="space-y-3 py-2">
               <div>
-                <Label htmlFor="editQuestionText">Question</Label>
-                <Textarea
-                  id="editQuestionText"
-                  value={editingQuestion.questionText}
-                  onChange={(e) => setEditingQuestion({ ...editingQuestion, questionText: e.target.value })}
-                  rows={3}
-                />
+                <Label>Question</Label>
+                <Textarea value={editQ.questionText} onChange={(e) => setEditQ({ ...editQ, questionText: e.target.value })} rows={3} />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3">
+                {editQ.options?.map((opt: string, i: number) => (
+                  <div key={i}>
+                    <Label>Option {String.fromCharCode(65 + i)}</Label>
+                    <Input value={opt} onChange={(e) => {
+                      const opts = [...editQ.options]; opts[i] = e.target.value; setEditQ({ ...editQ, options: opts })
+                    }} />
+                  </div>
+                ))}
+              </div>
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label htmlFor="editSubject">Subject</Label>
-                  <Input
-                    id="editSubject"
-                    value={editingQuestion.subject}
-                    onChange={(e) => setEditingQuestion({ ...editingQuestion, subject: e.target.value })}
-                  />
+                  <Label>Subject</Label>
+                  <Input value={editQ.subject || ""} onChange={(e) => setEditQ({ ...editQ, subject: e.target.value })} />
                 </div>
                 <div>
-                  <Label htmlFor="editChapter">Chapter</Label>
-                  <Input
-                    id="editChapter"
-                    value={editingQuestion.chapter || ""}
-                    onChange={(e) => setEditingQuestion({ ...editingQuestion, chapter: e.target.value })}
-                  />
+                  <Label>Difficulty</Label>
+                  <Select value={editQ.difficulty} onValueChange={(v) => setEditQ({ ...editQ, difficulty: v || "MEDIUM" })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {difficulties.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
               <div>
-                <Label>Options</Label>
-                <div className="space-y-2">
-                  {editingQuestion.options.map((option: string, index: number) => (
-                    <div key={index} className="flex items-center gap-2">
-                      <span className="w-8 text-sm font-medium">{String.fromCharCode(65 + index)}.</span>
-                      <Input
-                        value={option}
-                        onChange={(e) => {
-                          const newOptions = [...editingQuestion.options]
-                          newOptions[index] = e.target.value
-                          setEditingQuestion({ ...editingQuestion, options: newOptions })
-                        }}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <Label htmlFor="editCorrectOption">Correct Option</Label>
-                <Select
-                  value={editingQuestion.correctOption.toString()}
-                  onValueChange={(value) => setEditingQuestion({ ...editingQuestion, correctOption: parseInt(value) })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {editingQuestion.options.map((_: string, index: number) => (
-                      <SelectItem key={index} value={index.toString()}>
-                        {String.fromCharCode(65 + index)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="editExplanation">Explanation</Label>
-                <Textarea
-                  id="editExplanation"
-                  value={editingQuestion.explanation || ""}
-                  onChange={(e) => setEditingQuestion({ ...editingQuestion, explanation: e.target.value })}
-                  rows={3}
-                />
+                <Label>Explanation</Label>
+                <Textarea value={editQ.explanation || ""} onChange={(e) => setEditQ({ ...editQ, explanation: e.target.value })} rows={3} />
               </div>
             </div>
           )}
           <DialogFooter>
-            <Button onClick={handleEditQuestion}>Update Question</Button>
+            <Button onClick={handleEdit}>Save Changes</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

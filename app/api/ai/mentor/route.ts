@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-import { AIMentor, type MentorContext } from "@/lib/ai/tutor-chat"
+import { generateMentorResponse } from "@/lib/services/ai-service"
 import { requireAIAccess } from "@/lib/ai/access"
 
 export async function POST(request: Request) {
@@ -51,19 +51,41 @@ export async function POST(request: Request) {
     ])
     console.log(`[AI:Mentor:${requestId}] Profile loaded: targetExam=${user?.targetExam}, weakTopics=${weakTopics.length}, attempts=${attempts.length}`)
 
-    const context: MentorContext = {
-      weakTopics: weakTopics.map((w) => `${w.subject}/${w.chapter}${w.topic ? `/${w.topic}` : ""} (${w.accuracy}%)`),
-      strongSubjects: user?.preferredSubjects ?? [],
-      targetExam: user?.targetExam ?? "JEE_MAIN",
-      recentScores: attempts.map((a) => a.score),
-      totalTestsTaken: attempts.length,
-      averageAccuracy: attempts.length > 0 ? Math.round(attempts.reduce((s, a) => s + a.accuracy, 0) / attempts.length) : 0,
-    }
-    console.log(`[AI:Mentor:${requestId}] Context built, initializing Gemini...`)
+    const weakTopicNames = weakTopics.map((w) => `${w.subject} - ${w.chapter}${w.topic ? ` - ${w.topic}` : ''}`)
+    const recentScores = attempts.map((a) => a.score)
+    const averageScore = recentScores.length > 0 ? Math.round(recentScores.reduce((s, a) => s + a, 0) / recentScores.length) : 0
 
-    const mentor = new AIMentor(context)
-    const reply = await mentor.chat(message, session.user.id)
-    console.log(`[AI:Mentor:${requestId}] Gemini response: ${reply.substring(0, 80)}...`)
+    const userContext = {
+      recentAttempts: attempts.length,
+      averageScore,
+      weakTopics: weakTopicNames,
+      strongTopics: user?.preferredSubjects || [],
+      targetExam: user?.targetExam ?? "JEE_MAIN"
+    }
+
+    console.log(`[AI:Mentor:${requestId}] Context built, generating AI response...`)
+
+    const reply = await generateMentorResponse(message, userContext)
+    console.log(`[AI:Mentor:${requestId}] AI response: ${reply.substring(0, 80)}...`)
+
+    // Save chat history
+    await prisma.chatHistory.create({
+      data: {
+        userId: session.user.id,
+        role: "user",
+        content: message,
+        context: userContext as any
+      }
+    })
+
+    await prisma.chatHistory.create({
+      data: {
+        userId: session.user.id,
+        role: "assistant",
+        content: reply,
+        context: userContext as any
+      }
+    })
 
     return NextResponse.json({ reply })
   } catch (error: any) {

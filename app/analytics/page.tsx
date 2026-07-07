@@ -7,6 +7,7 @@ import { AppShell } from "@/components/layout/app-shell"
 import { WelcomeBanner } from "@/components/dashboard/welcome-banner"
 import { Loader2, TrendingUp, Target, BookOpen, Award, Calendar, ArrowUp, BarChart3, Brain } from "lucide-react"
 import type { AnalyticsOverview } from "@/services/analytics-service"
+import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts"
 
 const subjectGradients: Record<string, string> = {
   Physics: "from-blue-500 to-cyan-500",
@@ -15,6 +16,8 @@ const subjectGradients: Record<string, string> = {
 }
 
 const defaultGradient = "from-violet-500 to-blue-500"
+
+const COLORS = ['#3b82f6', '#8b5cf6', '#f59e0b', '#10b981', '#ef4444']
 
 function formatTime(seconds: number): string {
   const hrs = Math.floor(seconds / 3600)
@@ -120,34 +123,18 @@ export default function AnalyticsPage() {
                 No test data yet. Complete a test to see subject analysis.
               </div>
             ) : (
-              <div className="space-y-3">
-                {overview.subjectPerformance.map((subject) => {
-                  const gradient = subjectGradients[subject.subject] || defaultGradient
-                  return (
-                    <div key={subject.subject} className="rounded-2xl border border-border bg-card p-4">
-                      <div className="mb-3 flex items-center gap-3">
-                        <div className={`flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br ${gradient}`}>
-                          <Brain className="h-4 w-4 text-white" />
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between">
-                            <h3 className="font-semibold">{subject.subject}</h3>
-                            <span className="font-bold">{subject.averageScore}%</span>
-                          </div>
-                          <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-muted/50">
-                            <div className={`h-full rounded-full bg-gradient-to-r ${gradient}`} style={{ width: `${subject.averageScore}%` }} />
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex gap-6 text-sm">
-                        <span className="text-muted-foreground">Attempts: <span className="font-semibold text-foreground">{subject.attempts}</span></span>
-                        <span className="flex items-center gap-1 text-emerald-400">
-                          Accuracy: {subject.averageAccuracy}%
-                        </span>
-                      </div>
-                    </div>
-                  )
-                })}
+              <div className="rounded-2xl border border-border bg-card p-5">
+                <ResponsiveContainer width="100%" height={250}>
+                  <BarChart data={overview.subjectPerformance}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                    <XAxis dataKey="subject" className="text-xs" />
+                    <YAxis domain={[0, 100]} className="text-xs" />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="averageScore" fill="#8b5cf6" name="Average Score" />
+                    <Bar dataKey="averageAccuracy" fill="#10b981" name="Accuracy" />
+                  </BarChart>
+                </ResponsiveContainer>
               </div>
             )}
           </div>
@@ -162,24 +149,115 @@ export default function AnalyticsPage() {
                 </div>
               ) : (
                 <>
-                  <div className="mb-4 flex h-[180px] items-end justify-between gap-3">
-                    {overview.scoreHistory.slice(0, 7).map((item, idx) => (
-                      <div key={idx} className="flex flex-1 flex-col items-center gap-2">
-                        <span className="text-xs font-bold">{item.score}</span>
-                        <div
-                          className="w-full rounded-lg bg-gradient-to-t from-blue-500/80 via-purple-500/60 to-pink-500/40"
-                          style={{ height: `${(item.score / 100) * 140}px` }}
-                        />
-                        <span className="text-[10px] text-muted-foreground">{item.date?.slice(5) || `#${idx + 1}`}</span>
-                      </div>
-                    ))}
-                  </div>
+                  <ResponsiveContainer width="100%" height={200}>
+                    <LineChart data={overview.scoreHistory.slice(0, 10).map((item, idx) => ({
+                      name: item.date?.slice(5) || `Test ${idx + 1}`,
+                      score: item.score
+                    }))}>
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                      <XAxis dataKey="name" className="text-xs" />
+                      <YAxis domain={[0, 100]} className="text-xs" />
+                      <Tooltip />
+                      <Legend />
+                      <Line type="monotone" dataKey="score" stroke="#8b5cf6" strokeWidth={2} dot={{ fill: '#8b5cf6' }} />
+                    </LineChart>
+                  </ResponsiveContainer>
                   <p className="flex items-center gap-2 border-t border-border pt-3 text-sm text-muted-foreground">
                     <TrendingUp className="h-4 w-4 text-emerald-400" />
                     {overview.scoreHistory.length > 1 ? "Track your progress over time." : "Complete more tests to see trends."}
                   </p>
                 </>
               )}
+            </div>
+          </div>
+        </div>
+
+        {/* Additional Analytics */}
+        <div className="grid gap-6 xl:grid-cols-3">
+          {/* Weak Topics */}
+          <div>
+            <h2 className="mb-4 text-lg font-bold">Weak Topics</h2>
+            <div className="rounded-2xl border border-border bg-card p-5">
+              {overview.weakTopics.length === 0 ? (
+                <div className="py-8 text-center text-sm text-muted-foreground">
+                  No weak topics identified yet.
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height={200}>
+                  <PieChart>
+                    <Pie
+                      data={overview.weakTopics.slice(0, 5)}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={(entry) => entry.name}
+                      outerRadius={60}
+                      fill="#8884d8"
+                      dataKey="accuracy"
+                    >
+                      {overview.weakTopics.slice(0, 5).map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+          </div>
+
+          {/* Strong Topics */}
+          <div>
+            <h2 className="mb-4 text-lg font-bold">Strong Topics</h2>
+            <div className="rounded-2xl border border-border bg-card p-5">
+              {overview.strongTopics.length === 0 ? (
+                <div className="py-8 text-center text-sm text-muted-foreground">
+                  No strong topics identified yet.
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height={200}>
+                  <PieChart>
+                    <Pie
+                      data={overview.strongTopics.slice(0, 5)}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={(entry) => entry.name}
+                      outerRadius={60}
+                      fill="#8884d8"
+                      dataKey="accuracy"
+                    >
+                      {overview.strongTopics.slice(0, 5).map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+          </div>
+
+          {/* Time Analysis */}
+          <div>
+            <h2 className="mb-4 text-lg font-bold">Time Analysis</h2>
+            <div className="rounded-2xl border border-border bg-card p-5">
+              <div className="space-y-4">
+                <div>
+                  <p className="text-sm text-muted-foreground">Average Time per Question</p>
+                  <p className="text-2xl font-bold">
+                    {overview.totalAttempts > 0 ? Math.round(overview.totalTimeSpent / (overview.totalAttempts * 30)) : 0}s
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Total Study Time</p>
+                  <p className="text-2xl font-bold">{formatTime(overview.totalTimeSpent)}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Tests Completed</p>
+                  <p className="text-2xl font-bold">{overview.totalAttempts}</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>

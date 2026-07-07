@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-import { generateStudyPlan, calculatePlanDateRange } from "@/lib/ai/study-plan-generator"
+import { generateStudyPlan as generateAIStudyPlan } from "@/lib/services/ai-service"
 import { requireAIAccess } from "@/lib/ai/access"
 
 export async function GET(request: Request) {
@@ -76,34 +76,34 @@ export async function POST(request: Request) {
       if (a.score >= 70) strongSubjectSet.add(subj)
     }
 
-    const result = await generateStudyPlan(session.user.id, {
-      targetExam: user?.targetExam ?? "JEE_MAIN",
-      weakTopics: weakTopics.map((w) => ({
-        subject: w.subject,
-        chapter: w.chapter,
-        topic: w.topic,
-        accuracy: w.accuracy,
-      })),
-      strongSubjects: Array.from(strongSubjectSet),
-      availableHoursPerDay,
-      durationDays,
-    })
+    const weakTopicNames = weakTopics.map((w) => `${w.subject} - ${w.chapter}${w.topic ? ` - ${w.topic}` : ''}`)
+    const recentScores = attempts.map((a) => a.score)
+    const targetScore = Math.max(...recentScores, 80)
 
-    const { startDate, endDate } = calculatePlanDateRange(durationDays)
+    const aiPlan = await generateAIStudyPlan(
+      weakTopicNames,
+      user?.targetExam ?? "JEE_MAIN",
+      targetScore,
+      durationDays
+    )
+
+    const startDate = new Date()
+    const endDate = new Date()
+    endDate.setDate(endDate.getDate() + durationDays)
 
     const plan = await prisma.studyPlan.create({
       data: {
         userId: session.user.id,
-        title: result.title,
-        description: result.description,
-        planData: result as any,
+        title: `${durationDays}-Day Study Plan for ${user?.targetExam ?? 'JEE_MAIN'}`,
+        description: `AI-generated study plan targeting ${targetScore}% score`,
+        planData: { plan: aiPlan, weakTopics: weakTopicNames, targetScore } as any,
         startDate,
         endDate,
         isAIGenerated: true,
       },
     })
 
-    return NextResponse.json({ plan, result })
+    return NextResponse.json({ plan, aiPlan })
   } catch (error: any) {
     console.error("Study plan generation error:", error)
     return NextResponse.json(

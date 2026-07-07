@@ -2,9 +2,8 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-import { generateRecommendations } from "@/lib/ai/recommendation-engine"
+import { generateRecommendations, analyzeWeakTopics } from "@/lib/services/ai-service"
 import { requireAIAccess } from "@/lib/ai/access"
-import type { WeakTopicResult } from "@/lib/ai/types"
 
 export async function GET(request: Request) {
   try {
@@ -58,14 +57,7 @@ export async function GET(request: Request) {
       subject: a.mockTest?.subject ?? "General",
     }))
 
-    const weakTopicResults: WeakTopicResult[] = weakTopics.map((w) => ({
-      subject: w.subject,
-      chapter: w.chapter,
-      topic: w.topic,
-      accuracy: w.accuracy,
-      attempts: w.attempts,
-      severity: w.accuracy < 40 ? "high" : w.accuracy < 50 ? "medium" : "low",
-    }))
+    const weakTopicNames = weakTopics.map((w) => `${w.subject} - ${w.chapter}${w.topic ? ` - ${w.topic}` : ''}`)
 
     const strongSubjects = new Set<string>()
     for (const a of attempts) {
@@ -74,47 +66,26 @@ export async function GET(request: Request) {
       }
     }
 
-    const aiResult = await generateRecommendations(session.user.id, {
-      weakTopics: weakTopicResults,
-      strongSubjects: Array.from(strongSubjects),
+    const aiRecommendation = await generateRecommendations(
+      weakTopicNames,
+      Array.from(strongSubjects),
       recentScores,
-      targetExam: user?.targetExam ?? "JEE_MAIN",
-      availableStudyHours: 4,
-      testHistory,
+      user?.targetExam ?? "JEE_MAIN"
+    )
+
+    const rec = await prisma.aIRecommendation.create({
+      data: {
+        userId: session.user.id,
+        type: "STUDY_PLAN",
+        content: { recommendation: aiRecommendation } as any,
+        reason: "AI-generated study recommendations",
+        priority: 3,
+      },
     })
 
-    const recTypes: Array<"TEST" | "CHAPTER" | "STUDY_PLAN"> = ["TEST", "CHAPTER", "STUDY_PLAN"]
-    const recommendations = []
-
-    for (const topic of aiResult.recommendedTopics.slice(0, 5)) {
-      const rec = await prisma.aIRecommendation.create({
-        data: {
-          userId: session.user.id,
-          type: "CHAPTER",
-          content: { topic: topic.topic, priority: topic.priority, reason: topic.reason } as any,
-          reason: topic.reason,
-          priority: topic.priority === "high" ? 3 : topic.priority === "medium" ? 2 : 1,
-        },
-      })
-      recommendations.push(rec)
-    }
-
-    for (const test of aiResult.recommendedTests.slice(0, 3)) {
-      const rec = await prisma.aIRecommendation.create({
-        data: {
-          userId: session.user.id,
-          type: "TEST",
-          content: { testName: test.testName, reason: test.reason } as any,
-          reason: test.reason,
-          priority: 2,
-        },
-      })
-      recommendations.push(rec)
-    }
-
     return NextResponse.json({
-      recommendations,
-      aiResult,
+      recommendations: [rec],
+      aiRecommendation,
       source: "ai_generated",
     })
   } catch (error: any) {

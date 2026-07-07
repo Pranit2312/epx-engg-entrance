@@ -106,6 +106,9 @@ model Question {
   pyqSession       String?
   order           Int
   embedding       String
+  imagePath       String?
+  marks           Int             @default(4)
+  negativeMarks   Float           @default(1)
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
   mockTest        MockTest?       @relation(fields: [mockTestId], references: [id], onDelete: Cascade)
@@ -117,6 +120,7 @@ model Question {
 
   @@index([subject, chapter])
   @@index([examType, isPYQ])
+  @@index([examType, subject, difficulty])
 }
 
 model Attempt {
@@ -457,6 +461,30 @@ enum ExamType {
   WBJEE
   GUJCET
   OTHER
+}
+
+model ExamConfig {
+  id                String   @id @default(cuid())
+  examType          ExamType @unique
+  totalQuestions    Int
+  duration          Int
+  marksPerQuestion  Int      @default(4)
+  negativeMarking   Float    @default(1)
+  subjects          String[] @default([])
+  questionsPerSubject Int[]  @default([])
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model SyllabusChapter {
+  id       String  @id @default(cuid())
+  examType ExamType
+  subject  String
+  chapter  String
+  topics   String[]
+
+  @@unique([examType, subject, chapter])
+  @@index([examType, subject])
 }
 
 enum Difficulty {

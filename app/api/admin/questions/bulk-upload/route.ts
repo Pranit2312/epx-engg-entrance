@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import { parseCSV, validateCSVQuestion, convertCorrectAnswerToIndex, CSVQuestion } from "@/lib/utils/csv-parser"
 
 export async function POST(request: Request) {
   try {
@@ -19,57 +20,66 @@ export async function POST(request: Request) {
     }
 
     const text = await file.text()
-    let questions: any[] = []
+    let questions: CSVQuestion[] = []
+    const errors: string[] = []
 
     if (fileType === "json") {
-      questions = JSON.parse(text)
+      const jsonData = JSON.parse(text)
+      questions = Array.isArray(jsonData) ? jsonData : [jsonData]
     } else if (fileType === "csv") {
-      const lines = text.split("\n")
-      const headers = lines[0].split(",")
-      questions = lines.slice(1).map((line) => {
-        const values = line.split(",")
-        const question: any = {}
-        headers.forEach((header, index) => {
-          question[header.trim()] = values[index]?.trim()
-        })
-        return question
-      })
+      questions = parseCSV(text)
     } else {
-      return NextResponse.json({ error: "Unsupported file type" }, { status: 400 })
+      return NextResponse.json({ error: "Unsupported file type. Use CSV or JSON" }, { status: 400 })
     }
 
     // Validate and create questions
     const createdQuestions = []
+    const skippedQuestions = []
+
     for (const q of questions) {
-      if (!q.questionText || !q.options || !q.correctOption) {
+      const validation = validateCSVQuestion(q)
+      
+      if (!validation.valid) {
+        skippedQuestions.push({ question: q.question, errors: validation.errors })
+        errors.push(`Question skipped: ${q.question.substring(0, 50)}... - ${validation.errors.join(', ')}`)
         continue
       }
 
-      const question = await prisma.question.create({
-        data: {
-          questionText: q.questionText,
-          options: Array.isArray(q.options) ? q.options : JSON.parse(q.options),
-          correctOption: parseInt(q.correctOption),
-          explanation: q.explanation || null,
-          subject: q.subject || "General",
-          chapter: q.chapter || null,
-          topic: q.topic || null,
-          difficulty: q.difficulty || "MEDIUM",
-          examType: q.examType || "JEE_MAIN",
-          order: 0,
-          embedding: "",
-        },
-      })
-      createdQuestions.push(question)
+      try {
+        const question = await prisma.question.create({
+          data: {
+            questionText: q.question,
+            options: [q.optionA, q.optionB, q.optionC, q.optionD],
+            correctOption: convertCorrectAnswerToIndex(q.correctAnswer),
+            explanation: q.explanation || null,
+            subject: q.subject,
+            chapter: q.chapter || null,
+            topic: q.topic || null,
+            difficulty: q.difficulty.toUpperCase() as any,
+            examType: q.exam.toUpperCase() as any,
+            order: 0,
+            embedding: "",
+            imagePath: q.imagePath || null,
+            marks: 4,
+            negativeMarks: 1,
+          },
+        })
+        createdQuestions.push(question)
+      } catch (error) {
+        errors.push(`Failed to create question: ${q.question.substring(0, 50)}...`)
+        console.error("Question creation error:", error)
+      }
     }
 
     return NextResponse.json({ 
       success: true, 
       uploaded: createdQuestions.length,
+      skipped: skippedQuestions.length,
+      errors: errors.slice(0, 10), // Return first 10 errors
       questions: createdQuestions 
     })
   } catch (error) {
     console.error("Bulk upload error:", error)
-    return NextResponse.json({ error: "Bulk upload failed" }, { status: 500 })
+    return NextResponse.json({ error: "Bulk upload failed", details: String(error) }, { status: 500 })
   }
 }

@@ -29,6 +29,9 @@ interface QuestionItem {
   chapter?: string
   topic?: string
   difficulty?: string
+  imagePath?: string
+  marks?: number
+  negativeMarks?: number
 }
 
 const STORAGE_KEY_PREFIX = "epx_test_"
@@ -610,6 +613,15 @@ export default function TestAttemptPage() {
             {currentQ ? (
               <>
                 <h2 className="text-lg sm:text-xl font-semibold leading-relaxed mb-6">{currentQ.questionText}</h2>
+                {currentQ.imagePath && (
+                  <div className="mb-6 rounded-xl overflow-hidden border border-border">
+                    <img 
+                      src={currentQ.imagePath} 
+                      alt="Question image" 
+                      className="w-full h-auto max-h-64 object-contain"
+                    />
+                  </div>
+                )}
                 <div className="space-y-3">
                   {Array.isArray(currentQ.options) && currentQ.options.map((option, index) => (
                     <button

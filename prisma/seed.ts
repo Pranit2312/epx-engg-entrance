@@ -493,6 +493,24 @@ async function main() {
     { name: "MHT-CET Physics Mock Test", examType: "MHT_CET" as const, subject: "Physics", duration: 90, totalQuestions: 50, difficulty: "MEDIUM" as const, description: "MHT-CET Physics practice test covering all chapters" },
     { name: "MHT-CET Chemistry Mock Test", examType: "MHT_CET" as const, subject: "Chemistry", duration: 90, totalQuestions: 50, difficulty: "MEDIUM" as const, description: "MHT-CET Chemistry practice test covering all chapters" },
     { name: "MHT-CET Mathematics Mock Test", examType: "MHT_CET" as const, subject: "Mathematics", duration: 90, totalQuestions: 50, difficulty: "MEDIUM" as const, description: "MHT-CET Mathematics practice test covering all chapters" },
+    { name: "BITSAT Physics Mock Test", examType: "BITSAT" as const, subject: "Physics", duration: 60, totalQuestions: 40, difficulty: "MEDIUM" as const, description: "BITSAT Physics practice test" },
+    { name: "BITSAT Chemistry Mock Test", examType: "BITSAT" as const, subject: "Chemistry", duration: 60, totalQuestions: 40, difficulty: "MEDIUM" as const, description: "BITSAT Chemistry practice test" },
+    { name: "BITSAT Mathematics Mock Test", examType: "BITSAT" as const, subject: "Mathematics", duration: 60, totalQuestions: 40, difficulty: "MEDIUM" as const, description: "BITSAT Mathematics practice test" },
+    { name: "VITEEE Physics Mock Test", examType: "VITEEE" as const, subject: "Physics", duration: 60, totalQuestions: 40, difficulty: "MEDIUM" as const, description: "VITEEE Physics practice test" },
+    { name: "VITEEE Chemistry Mock Test", examType: "VITEEE" as const, subject: "Chemistry", duration: 60, totalQuestions: 40, difficulty: "MEDIUM" as const, description: "VITEEE Chemistry practice test" },
+    { name: "VITEEE Mathematics Mock Test", examType: "VITEEE" as const, subject: "Mathematics", duration: 60, totalQuestions: 40, difficulty: "MEDIUM" as const, description: "VITEEE Mathematics practice test" },
+    { name: "COMEDK Physics Mock Test", examType: "COMEDK" as const, subject: "Physics", duration: 60, totalQuestions: 30, difficulty: "MEDIUM" as const, description: "COMEDK Physics practice test" },
+    { name: "COMEDK Chemistry Mock Test", examType: "COMEDK" as const, subject: "Chemistry", duration: 60, totalQuestions: 30, difficulty: "MEDIUM" as const, description: "COMEDK Chemistry practice test" },
+    { name: "COMEDK Mathematics Mock Test", examType: "COMEDK" as const, subject: "Mathematics", duration: 60, totalQuestions: 30, difficulty: "MEDIUM" as const, description: "COMEDK Mathematics practice test" },
+    { name: "KCET Physics Mock Test", examType: "KCET" as const, subject: "Physics", duration: 60, totalQuestions: 30, difficulty: "MEDIUM" as const, description: "KCET Physics practice test" },
+    { name: "KCET Chemistry Mock Test", examType: "KCET" as const, subject: "Chemistry", duration: 60, totalQuestions: 30, difficulty: "MEDIUM" as const, description: "KCET Chemistry practice test" },
+    { name: "KCET Mathematics Mock Test", examType: "KCET" as const, subject: "Mathematics", duration: 60, totalQuestions: 30, difficulty: "MEDIUM" as const, description: "KCET Mathematics practice test" },
+    { name: "WBJEE Physics Mock Test", examType: "WBJEE" as const, subject: "Physics", duration: 60, totalQuestions: 30, difficulty: "MEDIUM" as const, description: "WBJEE Physics practice test" },
+    { name: "WBJEE Chemistry Mock Test", examType: "WBJEE" as const, subject: "Chemistry", duration: 60, totalQuestions: 30, difficulty: "MEDIUM" as const, description: "WBJEE Chemistry practice test" },
+    { name: "WBJEE Mathematics Mock Test", examType: "WBJEE" as const, subject: "Mathematics", duration: 60, totalQuestions: 30, difficulty: "MEDIUM" as const, description: "WBJEE Mathematics practice test" },
+    { name: "GUJCET Physics Mock Test", examType: "GUJCET" as const, subject: "Physics", duration: 60, totalQuestions: 30, difficulty: "MEDIUM" as const, description: "GUJCET Physics practice test" },
+    { name: "GUJCET Chemistry Mock Test", examType: "GUJCET" as const, subject: "Chemistry", duration: 60, totalQuestions: 30, difficulty: "MEDIUM" as const, description: "GUJCET Chemistry practice test" },
+    { name: "GUJCET Mathematics Mock Test", examType: "GUJCET" as const, subject: "Mathematics", duration: 60, totalQuestions: 30, difficulty: "MEDIUM" as const, description: "GUJCET Mathematics practice test" },
   ]
 
   const difficulties = ["EASY", "MEDIUM", "HARD"] as const
@@ -577,6 +595,43 @@ async function main() {
 
     console.log(`  ${test.name}: ${createdQuestions.length} questions`)
   }
+
+  // Seed ExamConfig records
+  const examConfigs = [
+    { examType: "JEE_MAIN" as const, totalQuestions: 75, duration: 180, marksPerQuestion: 4, negativeMarking: 1, subjects: ["Physics","Chemistry","Mathematics"], questionsPerSubject: [25,25,25] },
+    { examType: "JEE_ADVANCED" as const, totalQuestions: 54, duration: 180, marksPerQuestion: 4, negativeMarking: 2, subjects: ["Physics","Chemistry","Mathematics"], questionsPerSubject: [18,18,18] },
+    { examType: "MHT_CET" as const, totalQuestions: 150, duration: 180, marksPerQuestion: 1, negativeMarking: 0, subjects: ["Physics","Chemistry","Mathematics"], questionsPerSubject: [50,50,50] },
+    { examType: "BITSAT" as const, totalQuestions: 130, duration: 180, marksPerQuestion: 3, negativeMarking: 1, subjects: ["Physics","Chemistry","Mathematics"], questionsPerSubject: [40,40,40] },
+    { examType: "VITEEE" as const, totalQuestions: 120, duration: 150, marksPerQuestion: 4, negativeMarking: 1, subjects: ["Physics","Chemistry","Mathematics"], questionsPerSubject: [40,40,40] },
+    { examType: "COMEDK" as const, totalQuestions: 90, duration: 180, marksPerQuestion: 3, negativeMarking: 0, subjects: ["Physics","Chemistry","Mathematics"], questionsPerSubject: [30,30,30] },
+    { examType: "KCET" as const, totalQuestions: 60, duration: 80, marksPerQuestion: 1, negativeMarking: 0, subjects: ["Physics","Chemistry","Mathematics"], questionsPerSubject: [20,20,20] },
+    { examType: "WBJEE" as const, totalQuestions: 90, duration: 120, marksPerQuestion: 1, negativeMarking: 0, subjects: ["Physics","Chemistry","Mathematics"], questionsPerSubject: [30,30,30] },
+    { examType: "GUJCET" as const, totalQuestions: 90, duration: 120, marksPerQuestion: 1, negativeMarking: 0, subjects: ["Physics","Chemistry","Mathematics"], questionsPerSubject: [30,30,30] },
+  ]
+  for (const cfg of examConfigs) {
+    await prisma.examConfig.upsert({
+      where: { examType: cfg.examType },
+      update: cfg,
+      create: cfg,
+    })
+  }
+  console.log("ExamConfigs seeded:", examConfigs.length)
+
+  // Seed SyllabusChapter records
+  let syllabusCount = 0
+  for (const [subject, chapterList] of Object.entries(chapters)) {
+    for (const ch of chapterList) {
+      for (const examType of ["JEE_MAIN", "JEE_ADVANCED", "MHT_CET", "BITSAT", "VITEEE", "COMEDK", "KCET", "WBJEE", "GUJCET"]) {
+        await prisma.syllabusChapter.upsert({
+          where: { examType_subject_chapter: { examType: examType as any, subject, chapter: ch.name } },
+          update: { topics: ch.topics },
+          create: { examType: examType as any, subject, chapter: ch.name, topics: ch.topics },
+        })
+        syllabusCount++
+      }
+    }
+  }
+  console.log("Syllabus chapters seeded:", syllabusCount)
 
   console.log(`\nTotal questions seeded: ${totalQuestions}`)
   console.log("Seeding completed successfully!")

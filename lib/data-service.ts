@@ -141,8 +141,12 @@ export async function getTestById(id: string) {
 
 export async function getQuestionsForTest(testId: string, count: number) {
   try {
-    const { generateMockQuestions } = await import("@/lib/data/mock-questions")
-    return generateMockQuestions(count)
+    const { prisma } = await import("@/lib/prisma")
+    const questions = await prisma.question.findMany({
+      where: { mockTestId: testId },
+      take: count
+    })
+    return questions
   } catch {
     return []
   }
@@ -204,19 +208,13 @@ export async function submitAttempt(input: {
   submittedAt?: Date | null
 }) {
   try {
-    const test = await prisma.mockTest.findUnique({ where: { id: input.mockTestId } })
-    const marksPerQuestion = test?.marksPerQuestion ?? 4
-    const negativeMarking = test?.negativeMarking ?? 1
-    const rawScore = input.correct * marksPerQuestion - input.incorrect * negativeMarking
-    const maxPossibleScore = input.totalQuestions * marksPerQuestion
-    const scoreAsPercentage = maxPossibleScore > 0 ? Math.round((rawScore / maxPossibleScore) * 100) : 0
     const unattempted = input.totalQuestions - input.correct - input.incorrect
     return await prisma.attempt.create({
       data: {
         userId: input.userId,
         mockTestId: input.mockTestId,
-        score: scoreAsPercentage,
-        maxScore: maxPossibleScore,
+        score: input.score,
+        maxScore: 100,
         correct: input.correct,
         incorrect: input.incorrect,
         unattempted,

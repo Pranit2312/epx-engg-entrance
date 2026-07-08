@@ -92,96 +92,54 @@ Get personalized dashboard data with AI insights. Auth required.
 
 ## AI Routes
 
-### `POST /api/ai/analyze`
-Run AI performance analysis for an attempt. Auth required.
-```json
-// Request
-{ "attemptId": "..." }
-
-// Response 200
-{ "success": true, "analysis": { "overallAssessment": "...", "strengths": ["Mechanics", "Calculus"], "weaknesses": ["Electrostatics", "Organic Chemistry"], "recommendations": ["Focus on electrostatics: Coulomb's Law", "Practice organic reaction mechanisms"], "subjectBreakdown": [...] } }
-```
-
-### `GET /api/ai/debug`
-Diagnostics endpoint. No auth required.
-```json
-// Response 200
-{ "timestamp": "...", "hasGeminiKey": true, "sessionFound": true, "dbConnected": true, "geminiConnected": true, "geminiResponse": "OK" }
-```
-
-### `POST /api/ai/mentor`
-Chat with AI mentor. Auth required.
-```json
-// Request
-{ "message": "Help me understand torque", "context": { "weakTopics": ["Electrostatics"], "strongSubjects": ["Mechanics"], "targetExam": "JEE_MAIN", "recentScores": [75, 80], "totalTestsTaken": 3, "averageAccuracy": 78 } }
-
-// Response 200
-{ "reply": "Torque is the rotational equivalent of force...", "sessionId": "..." }
-```
-
-### `GET /api/ai/mentor/history`
-Get mentor chat history. Auth required.
-```json
-// Response 200
-{ "messages": [{ "role": "user", "content": "Help me understand torque", "createdAt": "..." }, { "role": "assistant", "content": "Torque is...", "createdAt": "..." }] }
-```
+All AI routes require premium subscription access and use Groq AI API for real AI responses.
 
 ### `GET /api/ai/recommendations`
-Get AI recommendations. Auth required. Query: `?refresh=true` to regenerate.
+Get AI-powered study recommendations based on performance data. Auth required. Query: `?refresh=true` to regenerate.
 ```json
 // Response 200
-{ "recommendations": [{ "id": "...", "type": "CHAPTER", "title": "Focus on Electrostatics", "description": "Coulomb's Law, Electric Field", "priority": "HIGH", "createdAt": "..." }] }
+{ "recommendations": [{ "id": "...", "type": "STUDY_PLAN", "content": { "recommendation": "..." }, "reason": "AI-generated study recommendations", "priority": 3 }], "aiRecommendation": "Focus on weak topics like Electrostatics and practice more numerical problems..." }
+```
+
+### `GET /api/ai/weak-topics`
+Get AI-analyzed weak topics. Auth required. Query: `?refresh=true` to regenerate.
+```json
+// Response 200
+{ "weakTopics": [...], "aiAnalyzedTopics": ["Physics - Electrostatics", "Chemistry - Organic Chemistry"], "recentAnalyses": [...] }
 ```
 
 ### `POST /api/ai/study-plan`
-Generate a study plan. Auth required.
+Generate an AI study plan. Auth required.
 ```json
 // Request
 { "durationDays": 7, "availableHoursPerDay": 4 }
 
 // Response 201
-{ "plan": { "id": "...", "durationDays": 7, "days": [{ "day": 1, "subjects": ["Physics"], "chapters": ["Mechanics"], "hours": 4, "tasks": ["Review kinematics formulas", "Solve 10 numerical problems"] }, ...] } }
+{ "plan": { "id": "...", "title": "7-Day Study Plan for JEE_MAIN", "description": "...", "planData": { "plan": "AI-generated day-by-day schedule...", "weakTopics": [...], "targetScore": 85 }, "startDate": "...", "endDate": "..." }, "aiPlan": "Day 1: Focus on Physics - Mechanics (2 hours)..." }
 ```
 
 ### `GET /api/ai/study-plan`
 List active study plans. Auth required.
 ```json
 // Response 200
-{ "plans": [{ "id": "...", "durationDays": 7, "status": "ACTIVE", "createdAt": "..." }] }
+{ "plans": [{ "id": "...", "title": "...", "durationDays": 7, "status": "ACTIVE", "createdAt": "..." }] }
 ```
 
-### `POST /api/ai/generate-question`
-Generate an AI question. Auth required.
+### `POST /api/ai/mentor`
+Chat with AI mentor. Auth required. Uses Groq AI with user context.
 ```json
 // Request
-{ "subject": "Physics", "chapter": "Mechanics", "topic": "Kinematics", "difficulty": "MEDIUM", "examType": "JEE_MAIN" }
+{ "message": "Help me understand torque" }
 
 // Response 200
-{ "question": { "questionText": "...", "options": ["...","...","...","..."], "correctOption": 2, "explanation": "..." } }
-```
-
-### `POST /api/ai/generate-variant`
-Generate a variant of an existing question. Auth required.
-```json
-// Request
-{ "questionId": "..." }
-
-// Response 200
-{ "variant": { "variantText": "...", "options": ["...","...","...","..."], "correctOption": 1, "explanation": "..." } }
-```
-
-### `GET /api/ai/weak-topics`
-Get weak topic analysis. Auth required. Query: `?refresh=true` to regenerate.
-```json
-// Response 200
-{ "weakTopics": [{ "subject": "Physics", "chapter": "Electrostatics", "topic": "Coulomb's Law", "accuracy": 35, "severity": "WEAK", "attempts": 5 }] }
+{ "reply": "Torque is the rotational equivalent of force..." }
 ```
 
 ### `GET /api/ai/rank-prediction`
-Predict your rank. Auth required.
+Predict exam rank based on historical performance using AI. Auth required.
 ```json
 // Response 200
-{ "predictedRank": 12500, "confidence": 0.75, "basedOnAttempts": 8, "percentile": 87.5 }
+{ "currentScore": 75, "targetExam": "JEE_MAIN", "prediction": { "predictedPercentile": 85, "predictedRank": 15000, "confidence": "Medium" }, "historicalScores": [70, 72, 75, 73, 75] }
 ```
 
 ---

@@ -2,7 +2,7 @@
 
 ## Overview
 
-EPX (Engineering Preparation eXperience) is a full-stack web platform for engineering entrance exam preparation. It provides mock tests, AI-powered analytics, personalized study plans, and an AI mentor — all backed by LangChain + Gemini.
+EPX (Engineering Preparation eXperience) is a full-stack web platform for engineering entrance exam preparation. It provides mock tests, AI-powered analytics, personalized study plans, and an AI mentor — backed by Groq AI API.
 
 ## Tech Stack
 
@@ -11,8 +11,9 @@ EPX (Engineering Preparation eXperience) is a full-stack web platform for engine
 | **Frontend** | Next.js 16 (App Router), React 19, Tailwind CSS, shadcn/ui |
 | **Backend** | Next.js API Routes (server components) |
 | **Database** | PostgreSQL 16 + Prisma ORM |
-| **AI** | Google Gemini 2.0 Flash via LangChain.js |
+| **AI** | Groq AI API (groq-sdk) |
 | **Auth** | NextAuth.js (Credentials provider, JWT) |
+| **Charts** | Recharts |
 | **Language** | TypeScript (strict mode) |
 
 ---
@@ -57,8 +58,8 @@ EPX (Engineering Preparation eXperience) is a full-stack web platform for engine
 │  ┌────────────────────────────────────────────────────┐ │
 │  │              AI Layer (lib/ai/)                     │ │
 │  │  ┌──────────┐ ┌──────────┐ ┌──────────────────┐   │ │
-│  │  │ Gemini   │ │ LangChain│ │ Tutor Chat       │   │ │
-│  │  │ Client   │ │ Chains   │ │ (ChatGoogleGenAI)│   │ │
+│  │  │ Groq     │ │ LangChain│ │ Tutor Chat       │   │ │
+│  │  │ Client   │ │ Chains   │ │ (Groq)           │   │ │
 │  │  └──────────┘ └──────────┘ └──────────────────┘   │ │
 │  │  ┌──────────┐ ┌──────────┐ ┌──────────────────┐   │ │
 │  │  │ Study    │ │ Recom-   │ │ Weak Topic       │   │ │
@@ -145,7 +146,7 @@ Analytics Page (app/analytics/page.tsx)
 
 ```
 lib/ai/recommendation-engine.ts
-    │  • Uses gemini.ts to generate recommendations
+    │  • Uses groq.ts to generate recommendations
     │  • Analyzes weak topics and recent performance
     │  • Creates AIRecommendation records in DB
     │  • Supports: TEST, CHAPTER, QUESTION, STUDY_PLAN types
@@ -177,18 +178,18 @@ GET /api/dashboard
 
 ## AI Module Details
 
-### Gemini Integration (lib/ai/gemini.ts)
+### Groq Integration (lib/ai/groq.ts)
 
-- **`getGeminiClient()`**: Creates GoogleGenerativeAI client from `GEMINI_API_KEY`
-- **`getGeminiModel(modelName?)`**: Returns a `GenerativeModel` instance (defaults to `gemini-2.0-flash`)
-- **`generateWithGemini(prompt, options?)`**: Sends text prompt, returns response text. Includes retry logic via `generateWithRetry()`
-- **`generateJsonWithGemini<T>(prompt, options?)`**: Requests JSON-structured response, validates and returns parsed type `T`
+- **`getGroqClient()`**: Creates Groq client from `GROQ_API_KEY`
+- **`getGroqModel(modelName?)`**: Returns a Groq model instance (defaults to `llama-3.3-70b-versatile`)
+- **`generateWithGroq(prompt, options?)`**: Sends text prompt, returns response text. Includes retry logic via `generateWithRetry()`
+- **`generateJsonWithGroq<T>(prompt, options?)`**: Requests JSON-structured response, validates and returns parsed type `T`
 - **`generateWithRetry(fn, retries?, delayMs?)`**: Exponential backoff retry wrapper (3 attempts, 2s base delay)
 - **`getTotalCost()`**: Tracks cumulative token usage across all requests
 
 ### LangChain Integration (lib/ai/tutor-chat.ts)
 
-- **`ChatGoogleGenerativeAI`**: LangChain model wrapper for Gemini
+- **`Groq SDK`**: LangChain model wrapper for Groq
 - **`ChatPromptTemplate`**: System message with student context (weak topics, strengths, target exam, scores)
 - **`MessagesPlaceholder("history")`**: Variable slot for conversation history
 - **`StringOutputParser`**: Parses model output to string
@@ -197,8 +198,8 @@ GET /api/dashboard
 
 ### AI Service Layer (lib/services/ai-service.ts)
 
-High-level wrappers that combine Gemini, LangChain, and database:
-- **`generateAIResponse(prompt)`**: Direct Gemini call
+High-level wrappers that combine Groq, LangChain, and database:
+- **`generateAIResponse(prompt)`**: Direct Groq call
 - **`generateRecommendations(userId)`**: Full recommendation pipeline
 - **`generateStudyPlan(userId, durationDays, hoursPerDay)`**: Day-by-day plan
 - **`generateMentorResponse(userId, message, context)`**: LangChain chat
@@ -218,7 +219,7 @@ POST /api/attempts → triggerAIAnalysis()
     ▼
 POST /api/ai/analyze { attemptId }
     │
-    ├─► performance-analyzer.ts → Gemini analysis
+    ├─► performance-analyzer.ts → Groq analysis
     │   • Builds prompt with subject scores, accuracy, time
     │   • Returns strengths, weaknesses, feedback
     │   • Stores AIAnalysis record

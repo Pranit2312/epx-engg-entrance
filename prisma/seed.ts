@@ -511,10 +511,19 @@ async function main() {
     { name: "GUJCET Physics Mock Test", examType: "GUJCET" as const, subject: "Physics", duration: 60, totalQuestions: 30, difficulty: "MEDIUM" as const, description: "GUJCET Physics practice test" },
     { name: "GUJCET Chemistry Mock Test", examType: "GUJCET" as const, subject: "Chemistry", duration: 60, totalQuestions: 30, difficulty: "MEDIUM" as const, description: "GUJCET Chemistry practice test" },
     { name: "GUJCET Mathematics Mock Test", examType: "GUJCET" as const, subject: "Mathematics", duration: 60, totalQuestions: 30, difficulty: "MEDIUM" as const, description: "GUJCET Mathematics practice test" },
+    // Full Length Tests (FLT) — 180 min, 3 subjects × 50q, P/C: 1 mark, M: 2 marks
+    { name: "MHT-CET Full Length Test", examType: "MHT_CET" as const, subject: "All Subjects", duration: 180, totalQuestions: 150, difficulty: "HARD" as const, description: "MHT-CET Full Length — 50 Physics + 50 Chemistry + 50 Mathematics" },
+    { name: "BITSAT Full Length Test", examType: "BITSAT" as const, subject: "All Subjects", duration: 180, totalQuestions: 150, difficulty: "HARD" as const, description: "BITSAT Full Length — 50 Physics + 50 Chemistry + 50 Mathematics" },
+    { name: "VITEEE Full Length Test", examType: "VITEEE" as const, subject: "All Subjects", duration: 180, totalQuestions: 150, difficulty: "HARD" as const, description: "VITEEE Full Length — 50 Physics + 50 Chemistry + 50 Mathematics" },
+    { name: "COMEDK Full Length Test", examType: "COMEDK" as const, subject: "All Subjects", duration: 180, totalQuestions: 150, difficulty: "HARD" as const, description: "COMEDK Full Length — 50 Physics + 50 Chemistry + 50 Mathematics" },
+    { name: "KCET Full Length Test", examType: "KCET" as const, subject: "All Subjects", duration: 180, totalQuestions: 150, difficulty: "HARD" as const, description: "KCET Full Length — 50 Physics + 50 Chemistry + 50 Mathematics" },
+    { name: "WBJEE Full Length Test", examType: "WBJEE" as const, subject: "All Subjects", duration: 180, totalQuestions: 150, difficulty: "HARD" as const, description: "WBJEE Full Length — 50 Physics + 50 Chemistry + 50 Mathematics" },
+    { name: "GUJCET Full Length Test", examType: "GUJCET" as const, subject: "All Subjects", duration: 180, totalQuestions: 150, difficulty: "HARD" as const, description: "GUJCET Full Length — 50 Physics + 50 Chemistry + 50 Mathematics" },
   ]
 
   const difficulties = ["EASY", "MEDIUM", "HARD"] as const
   let totalQuestions = 0
+  const topicOffset = new Map<string, number>()
 
   for (const testDef of testDefs) {
     const test = await prisma.mockTest.create({
@@ -539,27 +548,28 @@ async function main() {
       : [testDef.subject]
 
     const questionsPerSubject = Math.floor(testDef.totalQuestions / subjectsToGenerate.length)
-    let qIndex = 0
 
     for (const subj of subjectsToGenerate) {
       const subjectChapters = chapters[subj as keyof typeof chapters] || []
       const questionsForSubject = testDef.subject === "All Subjects" ? questionsPerSubject : testDef.totalQuestions
-      const targetPerChapter = Math.ceil(questionsForSubject / Math.max(subjectChapters.length, 1))
       let subjectQCount = 0
 
       for (const chapter of subjectChapters) {
-        let chapterQCount = 0
+        if (subjectQCount >= questionsForSubject) break
         for (const topic of chapter.topics) {
           if (subjectQCount >= questionsForSubject) break
           const bank = getQuestions(subj, topic)
           if (bank.length === 0) continue
 
-          const perTopic = Math.max(1, Math.ceil((questionsForSubject - subjectQCount) / (chapter.topics.length - chapter.topics.indexOf(topic))))
-          let topicDone = 0
+          const perTopic = Math.max(1, Math.ceil((questionsForSubject - subjectQCount) / (chapter.topics.filter((_, i) => i >= chapter.topics.indexOf(topic)).length || 1)))
+          const topicKey = `${testDef.name}:${subj}:${topic}`
+          if (!topicOffset.has(topicKey)) topicOffset.set(topicKey, 0)
+          let offset = topicOffset.get(topicKey)!
 
-          while (topicDone < perTopic && subjectQCount < questionsForSubject) {
-            const q = bank[(qIndex + topicDone) % bank.length]
-            const diffIdx = qIndex % 3
+          for (let i = 0; i < perTopic && subjectQCount < questionsForSubject; i++) {
+            const q = bank[offset % bank.length]
+            offset++
+            const diffIdx = offset % 3
 
             const question = await prisma.question.create({
               data: {
@@ -573,25 +583,52 @@ async function main() {
                 topic: topic,
                 difficulty: difficulties[diffIdx],
                 examType: testDef.examType,
-                order: qIndex,
+                order: createdQuestions.length,
                 embedding: "",
               },
             })
             createdQuestions.push(question.id)
-            qIndex++
             subjectQCount++
-            topicDone++
             totalQuestions++
           }
+          topicOffset.set(topicKey, offset)
         }
-        chapterQCount++
       }
+
+      if (testDef.subject !== "All Subjects") break
     }
 
-    await prisma.mockTest.update({
-      where: { id: test.id },
-      data: { totalQuestions: createdQuestions.length },
-    })
+    // Create TestSections for full-length tests (per-subject marking)
+    if (testDef.subject === "All Subjects" && testDef.totalQuestions >= 75) {
+      const fltSubjects = ["Physics", "Chemistry", "Mathematics"]
+      const marksPerQ = testDef.examType === "MHT_CET" || testDef.examType === "KCET" || testDef.examType === "WBJEE" || testDef.examType === "GUJCET"
+        ? { Physics: 1, Chemistry: 1, Mathematics: 2 }
+        : testDef.examType === "COMEDK"
+          ? { Physics: 3, Chemistry: 3, Mathematics: 3 }
+          : testDef.examType === "VITEEE"
+            ? { Physics: 4, Chemistry: 4, Mathematics: 4 }
+            : { Physics: 3, Chemistry: 3, Mathematics: 3 }
+      const qPerSubject = Math.floor(testDef.totalQuestions / 3)
+      for (const subj of fltSubjects) {
+        await prisma.testSection.create({
+          data: {
+            mockTestId: test.id,
+            subject: subj,
+            questionCount: qPerSubject,
+            marks: qPerSubject * marksPerQ[subj as keyof typeof marksPerQ],
+          },
+        })
+      }
+      await prisma.mockTest.update({
+        where: { id: test.id },
+        data: { totalQuestions: createdQuestions.length, marksPerQuestion: 1 },
+      })
+    } else {
+      await prisma.mockTest.update({
+        where: { id: test.id },
+        data: { totalQuestions: createdQuestions.length },
+      })
+    }
 
     console.log(`  ${test.name}: ${createdQuestions.length} questions`)
   }

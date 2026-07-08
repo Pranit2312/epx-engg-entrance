@@ -129,7 +129,7 @@ export default function MentorPage() {
               </div>
               <div>
                 <h1 className="text-lg font-semibold">AI Mentor</h1>
-                <p className="text-xs text-muted-foreground">Powered by Gemini</p>
+                <p className="text-xs text-muted-foreground">Powered by Groq AI</p>
               </div>
             </div>
           </div>

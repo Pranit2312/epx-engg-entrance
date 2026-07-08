@@ -59,8 +59,8 @@ DATABASE_URL="postgresql://postgres:postgres@localhost:5432/epx"
 NEXTAUTH_SECRET="your-random-secret-here"
 NEXTAUTH_URL="http://localhost:3000"
 
-# Gemini AI (get key from https://aistudio.google.com/apikey)
-GEMINI_API_KEY="your-gemini-api-key-here"
+# Groq AI (get key from https://console.groq.com/keys)
+GROQ_API_KEY="your-groq-api-key-here"
 ```
 
 ---
@@ -115,20 +115,19 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ---
 
-## 6. Gemini API (AI Features)
+## 6. Groq AI API (AI Features)
 
-The AI features (mentor, study plans, recommendations, weak topic detection, question generation) require a Google Gemini API key.
+The AI features (mentor, study plans, recommendations, weak topic detection, rank prediction) require a Groq AI API key.
 
-1. Go to [Google AI Studio](https://aistudio.google.com/apikey)
+1. Go to [Groq Console](https://console.groq.com/keys)
 2. Create an API key
 3. Add it to `.env.local`:
    ```
-   GEMINI_API_KEY="your-key-here"
+   GROQ_API_KEY="your-key-here"
    ```
-4. Verify it works: `GET http://localhost:3000/api/ai/debug`
-   - Expected: `{ "hasGeminiKey": true, "geminiConnected": true }`
+4. Restart the dev server
 
-Without the key, AI features will return descriptive error messages. All other features (tests, analytics, admin) work without AI.
+Without the key, AI features will return error messages. All other features (tests, analytics, admin) work without AI.
 
 ---
 

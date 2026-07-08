@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
-import { getChatHistory } from "@/lib/ai/tutor-chat"
+import { prisma } from "@/lib/prisma"
 import { requireAIAccess } from "@/lib/ai/access"
 
 export async function GET() {
@@ -16,7 +16,11 @@ export async function GET() {
       return NextResponse.json({ error: "AI Mentor requires a premium subscription", premiumRequired: true }, { status: 403 })
     }
 
-    const history = await getChatHistory(session.user.id, 50)
+    const history = await prisma.chatHistory.findMany({
+      where: { userId: session.user.id },
+      orderBy: { createdAt: "desc" },
+      take: 50,
+    })
     const messages = history.reverse().map((h) => ({
       id: h.id,
       role: h.role as "user" | "assistant",

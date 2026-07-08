@@ -68,24 +68,19 @@ export async function POST(request: Request) {
     const reply = await generateMentorResponse(message, userContext)
     console.log(`[AI:Mentor:${requestId}] AI response: ${reply.substring(0, 80)}...`)
 
-    // Save chat history
-    await prisma.chatHistory.create({
-      data: {
-        userId: session.user.id,
-        role: "user",
-        content: message,
-        context: userContext as any
-      }
-    })
-
-    await prisma.chatHistory.create({
-      data: {
-        userId: session.user.id,
-        role: "assistant",
-        content: reply,
-        context: userContext as any
-      }
-    })
+    // Save chat history (non-critical, ignore FK errors from stale sessions)
+    try {
+      await prisma.$transaction([
+        prisma.chatHistory.create({
+          data: { userId: session.user.id, role: "user", content: message, context: userContext as any }
+        }),
+        prisma.chatHistory.create({
+          data: { userId: session.user.id, role: "assistant", content: reply, context: userContext as any }
+        }),
+      ])
+    } catch (e: any) {
+      console.warn(`[AI:Mentor:${requestId}] Failed to save chat history: ${e?.message ?? e}`)
+    }
 
     return NextResponse.json({ reply })
   } catch (error: any) {

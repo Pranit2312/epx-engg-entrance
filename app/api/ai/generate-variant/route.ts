@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-import { generateVariant } from "@/lib/ai/variant-generator"
+import { generateVariant } from "@/lib/services/ai-service"
 import { requireAIAccess } from "@/lib/ai/access"
 
 export async function POST(request: Request) {
@@ -40,6 +40,10 @@ export async function POST(request: Request) {
       topic: question.topic ?? "General",
       difficulty: question.difficulty,
     })
+
+    if (!result) {
+      return NextResponse.json({ error: "AI variant generation failed", message: "AI service unavailable" }, { status: 503 })
+    }
 
     const variant = await prisma.aIVariant.create({
       data: {

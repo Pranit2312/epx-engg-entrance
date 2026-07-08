@@ -2,10 +2,8 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-import { analyzePerformance } from "@/lib/ai/performance-analyzer"
-import { detectWeakTopics } from "@/lib/ai/weak-topic-detector"
+import { analyzePerformance, generateWeakTopicAnalysis } from "@/lib/services/ai-service"
 import { requireAIAccess } from "@/lib/ai/access"
-import type { PerformanceData, QuestionDetail, SubjectBreakdown } from "@/lib/ai/types"
 
 export async function POST(request: Request) {
   try {
@@ -49,7 +47,7 @@ export async function POST(request: Request) {
     const chapterMap = new Map<string, { correct: number; total: number }>()
     const topicMap = new Map<string, { correct: number; total: number }>()
 
-    const questionDetails: QuestionDetail[] = attempt.answerRecords.map((record) => {
+    const questionDetails = attempt.answerRecords.map((record) => {
       const subj = record.question.subject
       const chapter = record.question.chapter ?? "General"
       const topic = record.question.topic
@@ -86,14 +84,14 @@ export async function POST(request: Request) {
       }
     })
 
-    const subjectBreakdown: SubjectBreakdown[] = Array.from(subjectMap.entries()).map(([subject, data]) => ({
+    const subjectBreakdown = Array.from(subjectMap.entries()).map(([subject, data]) => ({
       subject,
       correct: data.correct,
       total: data.total,
       accuracy: data.total > 0 ? Math.round((data.correct / data.total) * 100) : 0,
     }))
 
-    const performanceData: PerformanceData = {
+    const performanceData = {
       totalScore: attempt.score,
       maxScore: attempt.maxScore,
       accuracy: attempt.accuracy,
@@ -107,7 +105,7 @@ export async function POST(request: Request) {
 
     const [analysisResult, weakTopics] = await Promise.all([
       analyzePerformance(session.user.id, attemptId, performanceData),
-      detectWeakTopics(session.user.id, {
+      generateWeakTopicAnalysis(session.user.id, {
         subjectBreakdown,
         chapterAccuracy: Array.from(chapterMap.entries()).map(([key, data]) => {
           const [subject, chapter] = key.split(":")

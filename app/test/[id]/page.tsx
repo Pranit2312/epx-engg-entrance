@@ -110,8 +110,9 @@ export default function TestAttemptPage() {
 
         let qs = questionsData.questions
         if (!qs || qs.length === 0) {
-          const { generateMockQuestions } = await import("@/lib/data/mock-questions")
-          qs = generateMockQuestions(foundTest.totalQuestions || 30)
+          setLoadError("No questions available for this test. Please contact admin.")
+          setIsLoading(false)
+          return
         }
         setQuestions(qs || [])
 

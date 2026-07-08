@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-import { generateAIQuestion } from "@/lib/ai/question-generator"
+import { generateAIQuestion } from "@/lib/services/ai-service"
 import { requireAIAccess } from "@/lib/ai/access"
 
 export async function POST(request: Request) {
@@ -30,6 +30,10 @@ export async function POST(request: Request) {
       difficulty: difficulty ?? "MEDIUM",
       examType: examType ?? "JEE_MAIN",
     })
+
+    if (!result) {
+      return NextResponse.json({ error: "AI question generation failed", message: "AI service unavailable" }, { status: 503 })
+    }
 
     return NextResponse.json({ question: result })
   } catch (error: any) {

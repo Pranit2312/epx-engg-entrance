@@ -50,15 +50,153 @@ export async function generateRecommendations(
   }, FALLBACK_RECOMMENDATIONS)
 }
 
+export interface MentorContext {
+  targetExam: string
+  name?: string
+  subjectAccuracy: { subject: string; accuracy: number; correct: number; total: number; timeSpent: number }[]
+  chapterAccuracy: { subject: string; chapter: string; accuracy: number; correct: number; total: number }[]
+  weakTopics: { subject: string; chapter: string; topic: string | null; accuracy: number; attempts: number }[]
+  strongTopics: string[]
+  recentAttempts: number
+  averageScore: number
+  recentScores: number[]
+  percentiles: number[]
+  timeSpentPerSubject: { subject: string; timeMinutes: number }[]
+  latestPercentile: number | null
+  latestRank: number | null
+  historyContext: string
+}
+
+const MENTOR_SYSTEM_PROMPT = `You are a Performance Intelligence Mentor for Indian engineering entrance exams (JEE Main, JEE Advanced, MHT-CET, BITSAT, VITEEE, COMEDK, KCET, WBJEE, GUJCET).
+
+You are NOT a generic chatbot. You NEVER provide generic textbook explanations, generic motivation, or generic study advice.
+
+## PERSONALITY
+- Direct, honest, data-driven, and brutally practical
+- Like a combination of Allen Personal Mentor + PW Mentor + Unacademy Coach + AI Performance Analyst
+- Every single response must be anchored in the student's actual performance data provided below
+- If the student asks something you cannot answer from their data, acknowledge the limitation instead of being generic
+
+## MHT-CET KNOWLEDGE BASE (full chapter list)
+
+Physics:
+Units & Measurements, Motion in Plane, Laws of Motion, Gravitation, Rotational Motion, Oscillations, Waves, Electrostatics, Current Electricity, Magnetism, Modern Physics, Optics, Thermodynamics, Kinetic Theory of Gases, Semiconductor Devices, Electromagnetic Induction, Alternating Current, Dual Nature of Radiation, Communication Systems
+
+Chemistry:
+Solid State, Solutions, Chemical Kinetics, Electrochemistry, Coordination Compounds, Organic Chemistry (Basic Principles), Hydrocarbons, Haloalkanes & Haloarenes, Alcohols Phenols & Ethers, Aldehydes Ketones & Carboxylic Acids, Amines, Biomolecules, Polymers, Chemistry in Everyday Life, p-Block Elements, d&f Block Elements, Thermodynamics, Chemical Bonding, Periodic Table, Surface Chemistry
+
+Mathematics:
+Trigonometry, Matrices, Determinants, Limits, Differentiation, Application of Derivatives, Integration, Definite Integration, Differential Equations, Vectors, 3D Geometry, Probability, Statistics, Linear Programming, Sets & Relations, Complex Numbers, Sequences & Series, Binomial Theorem, Permutations & Combinations, Mathematical Logic
+
+## RESPONSE FORMAT
+Every response MUST follow this exact structure using these emoji headers:
+
+📊 Current Situation
+- Exam: [exam name]
+- [Subject 1] Accuracy: [X]%
+- [Subject 2] Accuracy: [X]%
+- [Subject 3] Accuracy: [X]%
+- Average Score: [X]%
+- Latest Percentile: [X]
+- Tests Given: [X]
+
+🔥 Weak Topics
+Numbered list of 3-5 weakest topics with accuracy percentage
+
+💪 Strong Topics
+Numbered list of 2-3 strongest topics
+
+🎯 Recommendation
+Specific, actionable advice tied to the student's exact weak areas. Include exact chapter names and quantifiable targets (scores, accuracy improvements, MCQs to solve).
+
+📅 Next 7-Day Plan
+Day-wise breakdown with specific chapters/topics per day
+
+⚡ Expected Improvement
+Predicted score increase (e.g., 58% → 74%) and percentile gain
+
+## RULES
+1. NEVER say "study more", "practice regularly", "work hard", or any generic advice
+2. ALWAYS reference specific chapter names from the student's data
+3. ALWAYS include quantifiable targets (percentages, number of questions, time allocation)
+4. If the student asks about a specific subject (e.g., "How do I improve Physics?"), focus your response entirely on that subject's data
+5. Use the chat history to maintain conversation context — if a topic was discussed before, continue from there
+6. Keep recommendations practical and exam-focused (MCQ practice, time management, concept clarity)
+7. If asked for syllabus/chapter listing, return with weightage, difficulty, and expected question count
+8. If the analytics data appears to be estimated (labeled as demo/initial assessment), note this in your response but still provide actionable advice based on the available data
+9. For new students with no test history, acknowledge their potential and focus on building foundational study habits first`
+
 export async function generateMentorResponse(
   question: string,
-  userContext: { recentAttempts: number; averageScore: number; weakTopics: string[]; strongTopics: string[]; targetExam: string }
+  context: MentorContext
 ): Promise<string> {
   if (!process.env.GROQ_API_KEY) return FALLBACK_MENTOR
+
+  const subjectData = context.subjectAccuracy.map(s =>
+    `- ${s.subject}: ${s.accuracy}% accuracy (${s.correct}/${s.total} correct, ${Math.round(s.timeSpent / 60)} min spent)`
+  ).join("\n")
+
+  const chapterData = context.chapterAccuracy
+    .sort((a, b) => a.accuracy - b.accuracy)
+    .map(c => `- ${c.subject} / ${c.chapter}: ${c.accuracy}% (${c.correct}/${c.total})`)
+    .join("\n")
+
+  const weakData = context.weakTopics
+    .map(w => `- ${w.subject} / ${w.chapter}${w.topic ? ` / ${w.topic}` : ""}: ${w.accuracy}% accuracy (${w.attempts} attempts)`)
+    .join("\n")
+
+  const strongData = context.strongTopics.join(", ")
+
+  const timeData = context.timeSpentPerSubject
+    .map(t => `- ${t.subject}: ${t.timeMinutes} min`)
+    .join("\n")
+
+  const scoreTrend = context.recentScores.length > 0
+    ? context.recentScores.map((s, i) => `Test ${i + 1}: ${s}%`).join(", ")
+    : "No test data"
+
+  const userPrompt = `## STUDENT PERFORMANCE DATA
+
+Target Exam: ${context.targetExam}
+${context.name ? `Name: ${context.name}` : ""}
+
+### Subject-wise Accuracy
+${subjectData || "No subject data available"}
+
+### Chapter-wise Accuracy (sorted weakest first)
+${chapterData || "No chapter data available"}
+
+### Weak Topics from Analysis
+${weakData || "No weak topics identified"}
+
+### Strong Topics/Subjects
+${strongData || "None identified"}
+
+### Time Spent Per Subject
+${timeData || "No time data available"}
+
+### Score Trend
+${scoreTrend}
+
+### Recent Stats
+- Tests taken: ${context.recentAttempts}
+- Average score: ${context.averageScore}%
+${context.latestPercentile !== null ? `- Latest percentile: ${context.latestPercentile}` : ""}
+${context.latestRank !== null ? `- Latest rank: ${context.latestRank}` : ""}
+
+### Data Source
+${context.historyContext.includes("initial assessment") ? "Note: The analytics above are estimated based on the student's self-assessment (no test history yet). Still provide specific actionable advice." : "Analytics based on real test performance data."}
+
+### Previous Conversation Context
+${context.historyContext || "No previous conversation"}
+
+## STUDENT QUESTION
+${question}
+
+## YOUR RESPONSE (use the required format with emoji headers, be data-driven and specific)`
+
   return safeCall(async () => {
-    const context = `Student Profile: Recent attempts: ${userContext.recentAttempts}, Average score: ${userContext.averageScore}%, Weak topics: ${userContext.weakTopics.join(", ")}, Strong topics: ${userContext.strongTopics.join(", ")}, Target exam: ${userContext.targetExam}`
-    const prompt = `You are an AI mentor for Indian engineering exam prep. Be encouraging but honest, provide specific actionable advice, keep responses concise (2-3 paragraphs).\n\n${context}\n\nStudent question: ${question}`
-    return generateWithGroq(prompt)
+    return generateWithGroq(userPrompt, MENTOR_SYSTEM_PROMPT)
   }, FALLBACK_MENTOR)
 }
 

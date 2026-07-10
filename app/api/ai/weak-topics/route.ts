@@ -4,17 +4,18 @@ import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { requireAIAccess } from "@/lib/ai/access"
 import { analyzeWeakTopics } from "@/lib/services/ai-service"
+import { success, error, unauthorized, forbidden, serverError } from "@/lib/api-response"
 
 export async function GET(request: Request) {
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      return unauthorized()
     }
 
     const hasAccess = await requireAIAccess(session.user.id)
     if (!hasAccess) {
-      return NextResponse.json({ error: "AI weak topic analysis requires a premium subscription", premiumRequired: true }, { status: 403 })
+      return forbidden("AI weak topic analysis requires a premium subscription")
     }
 
     const { searchParams } = new URL(request.url)
@@ -61,22 +62,9 @@ export async function GET(request: Request) {
       severity: w.accuracy < 40 ? "high" : w.accuracy < 50 ? "medium" : "low",
     }))
 
-    return NextResponse.json({
-      weakTopics: aggregatedWeakTopics,
-      aiAnalyzedTopics,
-      recentAnalyses: analyses.map((a) => ({
-        id: a.id,
-        strengths: a.strengths,
-        weakTopics: a.weakTopics,
-        recommendations: a.recommendations,
-        createdAt: a.createdAt,
-      })),
-    })
+    return success({ weakTopics: aggregatedWeakTopics, aiAnalyzedTopics, recentAnalyses: analyses.map((a) => ({ id: a.id, strengths: a.strengths, weakTopics: a.weakTopics, recommendations: a.recommendations, createdAt: a.createdAt })) })
   } catch (error: any) {
     console.error("Weak topics fetch error:", error)
-    return NextResponse.json(
-      { error: "Failed to fetch weak topics", message: error?.message ?? "Unknown error" },
-      { status: 500 }
-    )
+    return serverError(error)
   }
 }

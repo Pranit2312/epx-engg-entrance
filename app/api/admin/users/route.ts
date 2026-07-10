@@ -1,8 +1,15 @@
 import { NextResponse } from "next/server"
+import { getServerSession } from "next-auth"
+import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import { success, unauthorized, serverError } from "@/lib/api-response"
 
 export async function GET() {
   try {
+    const session = await getServerSession(authOptions)
+    if (!session || session.user?.role !== "ADMIN") {
+      return unauthorized()
+    }
     const users = await prisma.user.findMany({
       select: {
         id: true,
@@ -18,8 +25,8 @@ export async function GET() {
       orderBy: { createdAt: "desc" },
     })
     const total = await prisma.user.count()
-    return NextResponse.json({ users, total })
+    return success({ users, total })
   } catch (error) {
-    return NextResponse.json({ error: "Failed to fetch users" }, { status: 500 })
+    return serverError(error)
   }
 }

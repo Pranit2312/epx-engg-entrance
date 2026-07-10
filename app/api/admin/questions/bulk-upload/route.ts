@@ -3,12 +3,13 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { parseCSV, validateCSVQuestion, convertCorrectAnswerToIndex, CSVQuestion } from "@/lib/utils/csv-parser"
+import { success, error, unauthorized, serverError } from "@/lib/api-response"
 
 export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions)
-    if (!session || session.user.role !== "ADMIN") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    if (!session || session.user?.role !== "ADMIN") {
+      return unauthorized()
     }
 
     const formData = await request.formData()
@@ -16,7 +17,7 @@ export async function POST(request: Request) {
     const fileType = formData.get("type") as string
 
     if (!file) {
-      return NextResponse.json({ error: "No file provided" }, { status: 400 })
+      return error("VALIDATION_ERROR", "No file provided")
     }
 
     const text = await file.text()
@@ -29,7 +30,7 @@ export async function POST(request: Request) {
     } else if (fileType === "csv") {
       questions = parseCSV(text)
     } else {
-      return NextResponse.json({ error: "Unsupported file type. Use CSV or JSON" }, { status: 400 })
+      return error("VALIDATION_ERROR", "Unsupported file type. Use CSV or JSON")
     }
 
     // Validate and create questions
@@ -71,8 +72,7 @@ export async function POST(request: Request) {
       }
     }
 
-    return NextResponse.json({ 
-      success: true, 
+    return success({ 
       uploaded: createdQuestions.length,
       skipped: skippedQuestions.length,
       errors: errors.slice(0, 10), // Return first 10 errors
@@ -80,6 +80,6 @@ export async function POST(request: Request) {
     })
   } catch (error) {
     console.error("Bulk upload error:", error)
-    return NextResponse.json({ error: "Bulk upload failed", details: String(error) }, { status: 500 })
+    return serverError(error)
   }
 }

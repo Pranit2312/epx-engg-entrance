@@ -40,8 +40,12 @@ export default function DashboardPage() {
       setHasFetched(true)
       try {
         const response = await fetch("/api/dashboard")
-        const data = await response.json()
-        setStats(data)
+        const result = await response.json()
+        if (result.success) {
+          setStats(result.data)
+        } else {
+          setStats({ totalTests: 0, testsAttempted: 0, averageScore: 0, averageAccuracy: 0, recentTests: [], recommendedTests: [] })
+        }
       } catch {
         setStats({ totalTests: 0, testsAttempted: 0, averageScore: 0, averageAccuracy: 0, recentTests: [], recommendedTests: [] })
       }
@@ -199,7 +203,7 @@ export default function DashboardPage() {
                         <p className="text-sm font-semibold">{test.mockTest?.name || "Mock Test"}</p>
                         <p className="flex items-center gap-1 text-xs text-muted-foreground">
                           <Calendar className="h-3 w-3" />
-                          {new Date(test.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                          <span suppressHydrationWarning>{new Date(test.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>
                         </p>
                       </div>
                     </div>

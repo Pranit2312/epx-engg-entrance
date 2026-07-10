@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Navbar } from "@/components/navbar"
-import { CheckCircle2, Clock3, Home, RotateCcw, Target, TrendingUp, XCircle, Award, Brain, Loader2 } from "lucide-react"
+import { CheckCircle2, Clock3, Home, RotateCcw, Target, TrendingUp, XCircle, Award, Brain, Loader2, BookOpen } from "lucide-react"
 import { getScoreMessage } from "@/config/scoring"
 
 interface ResultsData {
@@ -65,6 +65,7 @@ function ResultsContent() {
   const [loading, setLoading] = useState(true)
   const [animating, setAnimating] = useState(false)
   const [showReview, setShowReview] = useState(false)
+  const [showAnswerKey, setShowAnswerKey] = useState(false)
   const [reviewQuestion, setReviewQuestion] = useState(0)
 
   useEffect(() => {
@@ -76,7 +77,8 @@ function ResultsContent() {
         try {
           const res = await fetch(`/api/results/${attemptId}`)
           if (res.ok) {
-            const data = await res.json()
+            const json = await res.json()
+            const data = json.success ? json.data : json
             setResults({
               score: data.attempt.score,
               correct: data.attempt.correct,
@@ -130,6 +132,77 @@ function ResultsContent() {
   }
 
   const message = getScoreMessage(results.score)
+
+  if (showAnswerKey) {
+    return (
+      <div className="min-h-screen">
+        <Navbar />
+        <div className="section-spacing">
+          <div className="section-container max-w-4xl space-y-4">
+            <div className="flex items-center justify-between">
+              <button onClick={() => setShowAnswerKey(false)} className="text-sm text-muted-foreground hover:text-foreground">
+                ← Back to results
+              </button>
+              <span className="text-sm text-muted-foreground">{questions.length} questions</span>
+            </div>
+            {questions.map((q, idx) => {
+              const selectedOpt = q.selectedOption
+              const correctOpt = q.correctOption
+              return (
+                <div key={q.id} className="rounded-2xl border border-border bg-card p-5">
+                  <div className="flex items-start justify-between gap-2 mb-3">
+                    <div className="flex items-center gap-2">
+                      <span className="rounded-full border border-blue-500/20 bg-blue-500/10 px-2.5 py-0.5 text-[11px] font-medium text-blue-400">
+                        Q{idx + 1}
+                      </span>
+                      {q.subject && (
+                        <span className="rounded-full border border-border px-2.5 py-0.5 text-[11px] text-muted-foreground">{q.subject}</span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1.5 text-xs">
+                      {q.isCorrect === true && <span className="flex items-center gap-1 text-emerald-400"><CheckCircle2 className="h-3.5 w-3.5" /> Correct</span>}
+                      {q.isCorrect === false && <span className="flex items-center gap-1 text-red-400"><XCircle className="h-3.5 w-3.5" /> Incorrect</span>}
+                      {q.isCorrect === null && <span className="text-muted-foreground">Skipped</span>}
+                    </div>
+                  </div>
+                  <p className="text-sm sm:text-base font-medium mb-3">{q.questionText}</p>
+                  <div className="space-y-1.5">
+                    {q.options.map((option, oi) => {
+                      let ring = "border-border"
+                      let bg = ""
+                      let badge = ""
+                      if (oi === correctOpt) {
+                        ring = "border-emerald-500/40"
+                        bg = "bg-emerald-500/8"
+                        badge = "✓ Correct answer"
+                      }
+                      if (selectedOpt === oi && oi !== correctOpt) {
+                        ring = "border-red-500/40"
+                        bg = "bg-red-500/8"
+                        badge = "✗ Your answer"
+                      }
+                      return (
+                        <div key={oi} className={`rounded-xl border ${ring} ${bg} px-3 py-2 text-sm flex items-center justify-between`}>
+                          <span><span className="font-medium mr-2">{String.fromCharCode(65 + oi)}.</span>{option}</span>
+                          {badge && <span className="text-[10px] font-medium text-muted-foreground">{badge}</span>}
+                        </div>
+                      )
+                    })}
+                  </div>
+                  {q.explanation && (
+                    <div className="mt-3 rounded-xl border border-blue-500/10 bg-blue-500/5 px-3 py-2">
+                      <p className="text-[11px] font-semibold text-blue-400 mb-0.5">Explanation</p>
+                      <p className="text-xs text-muted-foreground">{q.explanation}</p>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   if (showReview) {
     const q = questions[reviewQuestion]
@@ -293,10 +366,14 @@ function ResultsContent() {
           )}
 
           {questions.length > 0 && (
-            <div className="flex justify-center">
+            <div className="flex flex-wrap justify-center gap-3">
+              <Button onClick={() => setShowAnswerKey(true)} variant="outline" className="rounded-xl">
+                <BookOpen className="mr-2 h-4 w-4" />
+                Answer Key
+              </Button>
               <Button onClick={() => setShowReview(true)} variant="outline" className="rounded-xl">
                 <Brain className="mr-2 h-4 w-4" />
-                Review Questions ({questions.length})
+                Review Questions
               </Button>
             </div>
           )}

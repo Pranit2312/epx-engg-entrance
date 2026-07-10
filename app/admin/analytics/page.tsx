@@ -9,11 +9,13 @@ export default function AdminAnalyticsPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetch("/api/admin/analytics").then(r => r.json()).then(setData).finally(() => setLoading(false))
+    let cancelled = false
+    fetch("/api/admin/analytics").then(r => { if (!r.ok) throw new Error("Failed to fetch"); return r.json() }).then(d => { if (!cancelled && d.success) setData(d.data) }).catch(() => { if (!cancelled) setData(null) }).finally(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
   }, [])
 
   if (loading) return <div className="container mx-auto px-4 py-8 text-center">Loading...</div>
-  if (!data) return <div className="container mx-auto px-4 py-8 text-center">Failed to load analytics.</div>
+  if (!data) return <div className="container mx-auto px-4 py-8 text-center text-red-400">Failed to load analytics. Check if the server is running.</div>
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -82,7 +84,7 @@ export default function AdminAnalyticsPage() {
                 <tr key={a.id} className="border-b last:border-0">
                   <td className="p-3">{a.user?.name || "Anonymous"}</td>
                   <td className="p-3">{a.mockTest?.name || "—"}</td>
-                  <td className="p-3 text-right text-muted-foreground">{new Date(a.createdAt).toLocaleDateString()}</td>
+                  <td className="p-3 text-right text-muted-foreground"><span suppressHydrationWarning>{new Date(a.createdAt).toLocaleDateString()}</span></td>
                 </tr>
               ))}
             </tbody>

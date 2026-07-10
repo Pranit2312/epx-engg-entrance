@@ -42,7 +42,7 @@ export default function AnalyticsPage() {
       try {
         const res = await fetch("/api/analytics")
         const json = await res.json()
-        setData(json)
+        if (json.success) setData(json.data)
       } catch {
         setData(null)
       }

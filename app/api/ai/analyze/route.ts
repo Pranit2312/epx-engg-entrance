@@ -4,22 +4,25 @@ import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { analyzePerformance, generateWeakTopicAnalysis } from "@/lib/services/ai-service"
 import { requireAIAccess } from "@/lib/ai/access"
+import { success, error, unauthorized, forbidden, notFound, serverError, parseBody } from "@/lib/api-response"
 
 export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      return unauthorized()
     }
 
     const hasAccess = await requireAIAccess(session.user.id)
     if (!hasAccess) {
-      return NextResponse.json({ error: "AI features require a premium subscription", premiumRequired: true }, { status: 403 })
+      return forbidden("AI features require a premium subscription")
     }
 
-    const { attemptId } = await request.json()
+    const { data, error: bodyError } = await parseBody<{ attemptId: string }>(request)
+    if (bodyError) return bodyError
+    const { attemptId } = data!
     if (!attemptId) {
-      return NextResponse.json({ error: "attemptId is required" }, { status: 400 })
+      return error("VALIDATION_ERROR", "attemptId is required")
     }
 
     const attempt = await prisma.attempt.findUnique({
@@ -37,10 +40,10 @@ export async function POST(request: Request) {
     })
 
     if (!attempt) {
-      return NextResponse.json({ error: "Attempt not found" }, { status: 404 })
+      return notFound("Attempt not found")
     }
     if (attempt.userId !== session.user.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      return unauthorized()
     }
 
     const subjectMap = new Map<string, { correct: number; total: number }>()
@@ -156,15 +159,9 @@ export async function POST(request: Request) {
       })
     }
 
-    return NextResponse.json({
-      analysis: analysisResult,
-      weakTopics,
-    })
+    return success({ analysis: analysisResult, weakTopics })
   } catch (error: any) {
     console.error("AI analyze error:", error)
-    return NextResponse.json(
-      { error: "AI analysis failed", message: error?.message ?? "Unknown error" },
-      { status: 500 }
-    )
+    return serverError(error)
   }
 }

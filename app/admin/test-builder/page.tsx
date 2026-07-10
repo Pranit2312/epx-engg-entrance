@@ -38,8 +38,8 @@ export default function TestBuilder() {
   const fetchQuestions = async () => {
     try {
       const response = await fetch("/api/admin/questions")
-      const data = await response.json()
-      setAvailableQuestions(data.questions || [])
+      const result = await response.json()
+      setAvailableQuestions(result.success ? (result.data?.questions || result.data || []) : [])
     } catch (error) {
       console.error("Failed to fetch questions:", error)
     }

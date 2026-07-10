@@ -25,9 +25,9 @@ export function useBookmarks() {
       try {
         const res = await fetch("/api/bookmarks")
         const data = await res.json()
-        if (Array.isArray(data)) {
-          setBookmarks(data)
-          setBookmarkedIds(new Set(data.map((b: Bookmark) => b.testId)))
+        if (data.success && Array.isArray(data.data)) {
+          setBookmarks(data.data)
+          setBookmarkedIds(new Set(data.data.map((b: Bookmark) => b.testId)))
         }
       } catch {
         // keep empty

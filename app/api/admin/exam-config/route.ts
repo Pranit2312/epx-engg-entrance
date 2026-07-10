@@ -1,22 +1,34 @@
 import { NextResponse } from "next/server"
+import { getServerSession } from "next-auth"
+import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import { success, error, unauthorized, serverError, parseBody } from "@/lib/api-response"
 
 export async function GET() {
   try {
+    const session = await getServerSession(authOptions)
+    if (!session || session.user?.role !== "ADMIN") {
+      return unauthorized()
+    }
     const configs = await prisma.examConfig.findMany({ orderBy: { examType: "asc" } })
-    return NextResponse.json({ configs })
+    return success({ configs })
   } catch (error) {
-    return NextResponse.json({ error: "Failed to fetch exam configs" }, { status: 500 })
+    return serverError(error)
   }
 }
 
 export async function PUT(request: Request) {
   try {
-    const body = await request.json()
-    const { id, ...data } = body
+    const session = await getServerSession(authOptions)
+    if (!session || session.user?.role !== "ADMIN") {
+      return unauthorized()
+    }
+    const { data: body, error: bodyError } = await parseBody<any>(request)
+    if (bodyError) return bodyError
+    const { id, ...data } = body!
     const config = await prisma.examConfig.update({ where: { id }, data })
-    return NextResponse.json({ config })
+    return success({ config })
   } catch (error) {
-    return NextResponse.json({ error: "Failed to update exam config" }, { status: 500 })
+    return serverError(error)
   }
 }

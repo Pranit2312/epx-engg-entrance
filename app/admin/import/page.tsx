@@ -30,12 +30,12 @@ export default function AdminImportPage() {
         method: "POST",
         body: formData,
       })
-      const data = await res.json()
-      if (res.ok) {
-        setResult({ success: true, message: `Uploaded ${data.uploaded} questions successfully.${data.skipped > 0 ? ` ${data.skipped} skipped.` : ""}` })
+      const result = await res.json()
+      if (result.success) {
+        setResult({ success: true, message: `Uploaded ${result.data.uploaded} questions successfully.${result.data.skipped > 0 ? ` ${result.data.skipped} skipped.` : ""}` })
         if (fileRef.current) fileRef.current.value = ""
       } else {
-        setResult({ success: false, message: data.error || "Upload failed" })
+        setResult({ success: false, message: result.error?.message || "Upload failed" })
       }
     } catch {
       setResult({ success: false, message: "Upload failed - check server connection" })

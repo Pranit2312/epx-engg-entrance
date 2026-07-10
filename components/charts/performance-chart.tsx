@@ -26,7 +26,7 @@ export const PerformanceChart = memo(function PerformanceChart({ data = defaultD
   const minVal = 40
 
   const points = data.map((d, i) => {
-    const x = padding.left + (i / (data.length - 1)) * chartW
+    const x = padding.left + (data.length > 1 ? (i / (data.length - 1)) * chartW : chartW / 2)
     const y = padding.top + chartH - ((d.value - minVal) / (maxVal - minVal)) * chartH
     return { x, y, ...d }
   })
@@ -59,8 +59,8 @@ export const PerformanceChart = memo(function PerformanceChart({ data = defaultD
         {peakPoint.value}%
       </div>
       <div className="mt-1 flex justify-between px-1">
-        {data.map((d) => (
-          <span key={d.day} className="text-[9px] text-muted-foreground">{d.day}</span>
+        {data.map((d, i) => (
+          <span key={`${d.day}-${i}`} className="text-[9px] text-muted-foreground">{d.day}</span>
         ))}
       </div>
     </div>

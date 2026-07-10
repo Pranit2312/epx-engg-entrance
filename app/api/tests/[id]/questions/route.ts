@@ -2,13 +2,14 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import { success, error, unauthorized, serverError } from "@/lib/api-response"
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getServerSession(authOptions).catch(() => null)
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    return unauthorized()
   }
 
   let id: string
@@ -16,11 +17,11 @@ export async function GET(
     const p = await params
     id = p.id
   } catch {
-    return NextResponse.json({ error: "Invalid test ID" }, { status: 400 })
+    return error("VALIDATION_ERROR", "Invalid test ID")
   }
 
   if (!id || typeof id !== "string" || id.trim() === "") {
-    return NextResponse.json({ error: "Test ID is required" }, { status: 400 })
+    return error("VALIDATION_ERROR", "Test ID is required")
   }
 
   try {
@@ -40,9 +41,9 @@ export async function GET(
       },
     })
 
-    return NextResponse.json({ questions, fallback: false, source: "database" })
+    return success({ questions, fallback: false, source: "database" })
   } catch (error) {
     console.error("Failed to fetch questions:", error)
-    return NextResponse.json({ error: "Failed to load questions" }, { status: 500 })
+    return serverError(error)
   }
 }

@@ -43,6 +43,9 @@ model User {
   questionBookmarks     QuestionBookmark[]
   aiAnalyses            AIAnalysis[]
   weakTopics            WeakTopic[]
+  topicAnalytics        TopicAnalytics[]
+  createdTests          MockTest[]        @relation("TestCreator")
+  createdVariants       AIVariant[]       @relation("VariantCreator")
 }
 
 model Admin {
@@ -68,6 +71,7 @@ model MockTest {
   isPublished    Boolean         @default(false)
   isAIGenerated  Boolean         @default(false)
   createdBy      String?
+  creator        User?           @relation("TestCreator", fields: [createdBy], references: [id], onDelete: SetNull)
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
   attempts       Attempt[]
@@ -86,9 +90,10 @@ model TestSection {
   questions   Question[]
 
   @@index([mockTestId])
+  @@unique([mockTestId, subject])
 }
 
-model Question {
+model   Question {
   id              String          @id @default(cuid())
   mockTestId      String?
   testSectionId   String?
@@ -118,6 +123,8 @@ model Question {
   topicAnalytics  TopicAnalytics[]
   variants        AIVariant[]
 
+  @@index([mockTestId])
+  @@index([testSectionId])
   @@index([subject, chapter])
   @@index([examType, isPYQ])
   @@index([examType, subject, difficulty])
@@ -148,8 +155,10 @@ model Attempt {
   answerRecords   UserMockTestQuestionAttemptAnswer[]
   aiAnalyses      AIAnalysis[]
 
-  @@unique([userId, mockTestId])
+  @@index([userId, mockTestId])
+  @@index([mockTestId])
   @@index([userId, createdAt])
+  @@index([status, submittedAt])
 }
 
 model UserMockTestQuestionAttemptAnswer {
@@ -169,6 +178,8 @@ model UserMockTestQuestionAttemptAnswer {
 
   @@index([attemptId])
   @@index([questionId])
+  @@index([userId])
+  @@unique([attemptId, questionId])
 }
 
 model Bookmark {
@@ -218,8 +229,8 @@ model Payment {
   amount          Float
   currency        String        @default("INR")
   status          PaymentStatus
-  razorpayOrderId String?
-  razorpayPaymentId String?
+  razorpayOrderId String?    @unique
+  razorpayPaymentId String? @unique
   razorpaySignature String?
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
@@ -227,6 +238,7 @@ model Payment {
   subscription    Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([subscriptionId])
 }
 
 model Leaderboard {
@@ -329,9 +341,11 @@ model TopicAnalytics {
   weakArea    Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   question    Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
 
   @@index([userId, subject, chapter])
+  @@index([questionId])
 }
 
 model AIAnalysis {
@@ -378,10 +392,11 @@ model AIVariant {
   subject         String
   chapter         String?
   topic           String?
-  difficulty      String   @default("MEDIUM")
+  difficulty      Difficulty @default(MEDIUM)
   createdBy       String?
-  createdAt       DateTime @default(now())
-  originalQuestion Question @relation(fields: [originalQuestionId], references: [id], onDelete: Cascade)
+  creator         User?      @relation("VariantCreator", fields: [createdBy], references: [id], onDelete: SetNull)
+  createdAt       DateTime   @default(now())
+  originalQuestion Question  @relation(fields: [originalQuestionId], references: [id], onDelete: Cascade)
 
   @@index([originalQuestionId])
 }

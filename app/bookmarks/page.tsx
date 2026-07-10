@@ -42,7 +42,7 @@ export default function BookmarksPage() {
       try {
         const res = await fetch("/api/bookmarks")
         const data = await res.json()
-        if (Array.isArray(data)) setBookmarks(data)
+        if (data.success && Array.isArray(data.data)) setBookmarks(data.data)
       } catch {
         setBookmarks([])
       }
@@ -59,7 +59,7 @@ export default function BookmarksPage() {
       // reload on error
       const res = await fetch("/api/bookmarks")
       const data = await res.json()
-      if (Array.isArray(data)) setBookmarks(data)
+      if (data.success && Array.isArray(data.data)) setBookmarks(data.data)
     }
   }
 

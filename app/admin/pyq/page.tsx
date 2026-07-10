@@ -42,8 +42,8 @@ export default function PYQManagement() {
   const fetchPYQs = async () => {
     try {
       const response = await fetch("/api/admin/pyq")
-      const data = await response.json()
-      setPyqQuestions(data.questions || [])
+      const result = await response.json()
+      setPyqQuestions(result.success ? (result.data?.questions || result.data || []) : [])
     } catch (error) {
       console.error("Failed to fetch PYQs:", error)
     } finally {

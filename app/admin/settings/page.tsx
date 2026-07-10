@@ -18,7 +18,7 @@ export default function AdminSettingsPage() {
   const [saving, setSaving] = useState<string | null>(null)
 
   useEffect(() => {
-    fetch("/api/admin/exam-config").then(r => r.json()).then(d => setConfigs(d.configs || [])).finally(() => setLoading(false))
+    fetch("/api/admin/exam-config").then(r => r.json()).then(d => setConfigs((d.data?.configs) || [])).finally(() => setLoading(false))
   }, [])
 
   const updateConfig = async (config: any) => {
@@ -29,8 +29,11 @@ export default function AdminSettingsPage() {
         body: JSON.stringify(config),
       })
       if (!res.ok) throw new Error("Update failed")
-      const data = await res.json()
-      setConfigs(prev => prev.map(c => c.id === data.config.id ? data.config : c))
+      const result = await res.json()
+      if (result.success) {
+        const updated = result.data.config
+        setConfigs(prev => prev.map(c => c.id === updated.id ? updated : c))
+      }
     } catch (e) { alert("Failed to update config") }
     finally { setSaving(null) }
   }

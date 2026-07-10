@@ -4,17 +4,18 @@ import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { generateRecommendations, analyzeWeakTopics } from "@/lib/services/ai-service"
 import { requireAIAccess } from "@/lib/ai/access"
+import { success, error, unauthorized, forbidden, serverError } from "@/lib/api-response"
 
 export async function GET(request: Request) {
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      return unauthorized()
     }
 
     const hasAccess = await requireAIAccess(session.user.id)
     if (!hasAccess) {
-      return NextResponse.json({ error: "AI features require a premium subscription", premiumRequired: true }, { status: 403 })
+      return forbidden("AI features require a premium subscription")
     }
 
     const { searchParams } = new URL(request.url)
@@ -27,7 +28,7 @@ export async function GET(request: Request) {
         take: 10,
       })
       if (existing.length > 0) {
-        return NextResponse.json({ recommendations: existing, source: "database" })
+        return success({ recommendations: existing, source: "database" })
       }
     }
 
@@ -83,16 +84,9 @@ export async function GET(request: Request) {
       },
     })
 
-    return NextResponse.json({
-      recommendations: [rec],
-      aiRecommendation,
-      source: "ai_generated",
-    })
+    return success({ recommendations: [rec], aiRecommendation, source: "ai_generated" })
   } catch (error: any) {
     console.error("AI recommendations error:", error)
-    return NextResponse.json(
-      { error: "Failed to generate recommendations", message: error?.message ?? "Unknown error" },
-      { status: 500 }
-    )
+    return serverError(error)
   }
 }

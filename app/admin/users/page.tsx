@@ -10,7 +10,9 @@ export default function AdminUsersPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetch("/api/admin/users").then(r => r.json()).then(d => setData(d)).finally(() => setLoading(false))
+    let cancelled = false
+    fetch("/api/admin/users").then(r => { if (!r.ok) throw new Error("Failed to fetch"); return r.json() }).then(d => { if (!cancelled && d.success) setData(d.data) }).catch(() => { if (!cancelled) setData({ users: [], total: 0 }) }).finally(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
   }, [])
 
   if (loading) return <div className="container mx-auto px-4 py-8 text-center">Loading...</div>
@@ -49,7 +51,7 @@ export default function AdminUsersPage() {
                   <td className="p-3"><Badge variant={user.role === "ADMIN" ? "default" : "secondary"}>{user.role}</Badge></td>
                   <td className="p-3">{user.targetExam?.replace(/_/g, " ") || "—"}</td>
                   <td className="p-3">{user._count?.attempts || 0}</td>
-                  <td className="p-3"><Calendar className="h-3 w-3 inline mr-1" />{new Date(user.createdAt).toLocaleDateString()}</td>
+                  <td className="p-3"><Calendar className="h-3 w-3 inline mr-1" /><span suppressHydrationWarning>{new Date(user.createdAt).toLocaleDateString()}</span></td>
                 </tr>
               ))}
             </tbody>

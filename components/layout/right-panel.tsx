@@ -37,7 +37,7 @@ export function RightPanel() {
   useEffect(() => {
     const load = async () => {
       try {
-        const [dashData, analyticsData] = await Promise.all([
+        const [dashJson, analyticsJson] = await Promise.all([
           dedupFetch("right-panel-dashboard", async () => {
             const res = await fetch("/api/dashboard")
             if (!res.ok) throw new Error("Failed")
@@ -49,6 +49,9 @@ export function RightPanel() {
             return res.json()
           }),
         ])
+
+        const dashData = dashJson.success ? dashJson.data : dashJson
+        const analyticsData = analyticsJson.success ? analyticsJson.data : analyticsJson
 
         if (dashData.recentTests?.length > 0) {
           setActivities(

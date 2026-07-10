@@ -47,8 +47,8 @@ export default function StudyPlansPage() {
     try {
       const res = await fetch("/api/ai/study-plan")
       if (res.ok) {
-        const data = await res.json()
-        setPlans(data.plans ?? [])
+        const result = await res.json()
+        setPlans(result.success ? (result.data?.plans || result.data || []) : [])
       }
     } catch {
       // silent
@@ -167,7 +167,7 @@ export default function StudyPlansPage() {
                       <div>
                         <h3 className="font-semibold">{plan.title}</h3>
                         <p className="text-xs text-muted-foreground">
-                          {new Date(plan.startDate).toLocaleDateString()} - {new Date(plan.endDate).toLocaleDateString()} · {days.length} days
+                          <span suppressHydrationWarning>{new Date(plan.startDate).toLocaleDateString()} - {new Date(plan.endDate).toLocaleDateString()}</span> · {days.length} days
                         </p>
                       </div>
                     </div>

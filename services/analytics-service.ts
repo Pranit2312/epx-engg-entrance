@@ -50,8 +50,6 @@ function calculateStreak(attempts: { createdAt: Date }[]): number {
 export const analyticsService = {
   async getOverview(userId: string): Promise<AnalyticsOverview> {
     const attempts = await attemptRepo.getStats(userId)
-    const subjectStats = await attemptRepo.getSubjectStats(userId)
-    const allTests = await testRepo.findAll()
 
     const totalAttempts = attempts.length
     const averageScore = totalAttempts > 0 ? Math.round(attempts.reduce((s, a) => s + a.score, 0) / totalAttempts) : 0
@@ -59,12 +57,25 @@ export const analyticsService = {
 
     let bestScore = 0
     let bestTestName: string | null = null
+    const bySubject: Record<string, { count: number; totalScore: number; totalAccuracy: number }> = {}
     for (const a of attempts) {
       if (a.score > bestScore) {
         bestScore = a.score
         bestTestName = a.mockTest?.name ?? null
       }
+      const subject = a.mockTest?.subject ?? "Unknown"
+      if (!bySubject[subject]) bySubject[subject] = { count: 0, totalScore: 0, totalAccuracy: 0 }
+      bySubject[subject].count++
+      bySubject[subject].totalScore += a.score
+      bySubject[subject].totalAccuracy += a.accuracy
     }
+
+    const subjectPerformance = Object.entries(bySubject).map(([subject, s]) => ({
+      subject,
+      attempts: s.count,
+      averageScore: Math.round(s.totalScore / s.count),
+      averageAccuracy: Math.round(s.totalAccuracy / s.count),
+    }))
 
     const totalTimeSpent = attempts.reduce((s, a) => s + a.timeTaken, 0)
     const currentStreak = calculateStreak(attempts)
@@ -75,22 +86,10 @@ export const analyticsService = {
       testName: a.mockTest?.name ?? "Unknown",
     }))
 
-    const weakTopics = subjectStats.filter((s) => s.averageScore < 60).map((s) => s.subject)
-    const strongTopics = subjectStats.filter((s) => s.averageScore >= 80).map((s) => s.subject)
+    const weakTopics = subjectPerformance.filter((s) => s.averageScore < 60).map((s) => s.subject)
+    const strongTopics = subjectPerformance.filter((s) => s.averageScore >= 80).map((s) => s.subject)
 
-    const attemptedTestIds = new Set(attempts.map((a) => a.mockTestId))
-    const recommendedTests = allTests
-      .filter((t) => !attemptedTestIds.has(t.id))
-      .slice(0, 6)
-      .map((t) => ({
-        id: t.id,
-        name: t.name,
-        subject: t.subject ?? "",
-        duration: t.duration,
-        totalQuestions: t.totalQuestions,
-        difficulty: t.difficulty ?? "MEDIUM",
-        description: t.description,
-      }))
+    const recommendedTests: AnalyticsOverview["recommendedTests"] = []
 
     return {
       totalAttempts,
@@ -100,7 +99,7 @@ export const analyticsService = {
       bestTestName,
       totalTimeSpent,
       currentStreak,
-      subjectPerformance: subjectStats,
+      subjectPerformance,
       scoreHistory,
       weakTopics,
       strongTopics,

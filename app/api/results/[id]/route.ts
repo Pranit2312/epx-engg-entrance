@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { attemptRepo } from "@/repositories/attempt-repository"
 import { prisma } from "@/lib/prisma"
+import { success, error, unauthorized, notFound, serverError } from "@/lib/api-response"
 
 export async function GET(
   _request: Request,
@@ -10,17 +11,17 @@ export async function GET(
 ) {
   const session = await getServerSession(authOptions).catch(() => null)
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    return unauthorized()
   }
 
   try {
     const { id } = await params
     const attempt = await attemptRepo.findById(id)
     if (!attempt) {
-      return NextResponse.json({ error: "Attempt not found" }, { status: 404 })
+      return notFound("Attempt not found")
     }
     if (attempt.userId !== session.user.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      return unauthorized()
     }
 
     const questionAnswers = await prisma.userMockTestQuestionAttemptAnswer.findMany({
@@ -61,7 +62,7 @@ export async function GET(
 
     const subjectBreakdown = calculateSubjectBreakdown(questionAnswers)
 
-    return NextResponse.json({
+    return success({
       attempt: {
         id: attempt.id,
         score: attempt.score,
@@ -78,9 +79,9 @@ export async function GET(
       questions,
       subjectBreakdown,
     })
-  } catch (error) {
-    console.error("Results API error:", error)
-    return NextResponse.json({ error: "Failed to fetch results" }, { status: 500 })
+  } catch (err) {
+    console.error("Results API error:", err)
+    return serverError()
   }
 }
 

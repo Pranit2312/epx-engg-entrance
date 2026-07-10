@@ -4,17 +4,18 @@ import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { generateStudyPlan as generateAIStudyPlan } from "@/lib/services/ai-service"
 import { requireAIAccess } from "@/lib/ai/access"
+import { success, error, unauthorized, forbidden, serverError, parseBody } from "@/lib/api-response"
 
 export async function GET(request: Request) {
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      return unauthorized()
     }
 
     const hasAccess = await requireAIAccess(session.user.id)
     if (!hasAccess) {
-      return NextResponse.json({ error: "AI study plans require a premium subscription", premiumRequired: true }, { status: 403 })
+      return forbidden("AI study plans require a premium subscription")
     }
 
     const plans = await prisma.studyPlan.findMany({
@@ -23,13 +24,10 @@ export async function GET(request: Request) {
       take: 5,
     })
 
-    return NextResponse.json({ plans })
+    return success({ plans })
   } catch (error: any) {
     console.error("Study plan fetch error:", error)
-    return NextResponse.json(
-      { error: "Failed to fetch study plans", message: error?.message ?? "Unknown error" },
-      { status: 500 }
-    )
+    return serverError(error)
   }
 }
 
@@ -37,15 +35,17 @@ export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      return unauthorized()
     }
 
     const hasAccess = await requireAIAccess(session.user.id)
     if (!hasAccess) {
-      return NextResponse.json({ error: "AI study plans require a premium subscription", premiumRequired: true }, { status: 403 })
+      return forbidden("AI study plans require a premium subscription")
     }
 
-    const { durationDays: rawDuration, availableHoursPerDay: rawHours } = await request.json()
+    const { data, error: bodyError } = await parseBody<{ durationDays?: number; availableHoursPerDay?: number }>(request)
+    if (bodyError) return bodyError
+    const { durationDays: rawDuration, availableHoursPerDay: rawHours } = data!
     const durationDays = (rawDuration ?? 7) as 7 | 15 | 30
     const availableHoursPerDay = rawHours ?? 4
 
@@ -103,12 +103,9 @@ export async function POST(request: Request) {
       },
     })
 
-    return NextResponse.json({ plan, aiPlan })
+    return success({ plan, aiPlan })
   } catch (error: any) {
     console.error("Study plan generation error:", error)
-    return NextResponse.json(
-      { error: "Failed to generate study plan", message: error?.message ?? "Unknown error" },
-      { status: 500 }
-    )
+    return serverError(error)
   }
 }

@@ -34,8 +34,8 @@ export default function QuestionsManagement() {
   const fetchQuestions = async () => {
     try {
       const res = await fetch("/api/admin/questions")
-      const data = await res.json()
-      setQuestions(data.questions || [])
+      const result = await res.json()
+      setQuestions(result.success ? (result.data?.questions || result.data || []) : [])
     } catch (e) { console.error("Failed to fetch questions:", e) }
     finally { setLoading(false) }
   }
@@ -82,8 +82,8 @@ export default function QuestionsManagement() {
     fd.append("file", file); fd.append("type", "csv")
     try {
       const res = await fetch("/api/admin/questions/bulk-upload", { method: "POST", body: fd })
-      const data = await res.json()
-      setUploadResult(res.ok ? `Uploaded ${data.uploaded} questions` : `Error: ${data.error}`)
+      const result = await res.json()
+      setUploadResult(res.ok ? `Uploaded ${result.data?.uploaded || 0} questions` : `Error: ${result.error?.message || result.error || "Upload failed"}`)
       if (res.ok) fetchQuestions()
     } catch { setUploadResult("Upload failed") }
   }

@@ -24,10 +24,15 @@ export default function NotificationsPage() {
   const router = useRouter()
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [loading, setLoading] = useState(true)
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/login")
   }, [status, router])
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   useEffect(() => {
     if (!session?.user?.id) return
@@ -35,7 +40,7 @@ export default function NotificationsPage() {
       try {
         const res = await fetch("/api/notifications")
         const data = await res.json()
-        if (Array.isArray(data)) setNotifications(data)
+        if (data.success && Array.isArray(data.data)) setNotifications(data.data)
       } catch {
         setNotifications([])
       }
@@ -64,6 +69,7 @@ export default function NotificationsPage() {
 
   const unreadCount = notifications.filter((n) => !n.read).length
   const timeAgo = (date: string) => {
+    if (!mounted) return ""
     const diff = Date.now() - new Date(date).getTime()
     const mins = Math.floor(diff / 60000)
     if (mins < 60) return `${mins}m ago`

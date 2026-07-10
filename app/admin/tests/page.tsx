@@ -14,7 +14,7 @@ export default function AdminTestsPage() {
   useEffect(() => {
     fetch("/api/admin/tests")
       .then((r) => r.json())
-      .then((d) => setTests(d.tests || []))
+      .then((d) => setTests(d.data?.tests || d.data || []))
       .catch(console.error)
       .finally(() => setLoading(false))
   }, [])

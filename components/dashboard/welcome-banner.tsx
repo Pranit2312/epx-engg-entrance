@@ -50,11 +50,12 @@ export function WelcomeBanner({ dashboardStats }: WelcomeBannerProps) {
     }
     const load = async () => {
       try {
-        const data = await dedupFetch("dashboard-banner", async () => {
+        const json = await dedupFetch("dashboard-banner", async () => {
           const response = await fetch("/api/dashboard")
           if (!response.ok) throw new Error("Failed")
           return response.json()
         })
+        const data = json.success ? json.data : json
         const best = data.recentTests?.length
           ? data.recentTests.reduce(
               (max: { score: number; mockTest?: { name?: string } }, t: { score: number; mockTest?: { name?: string } }) =>

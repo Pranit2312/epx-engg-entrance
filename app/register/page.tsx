@@ -55,21 +55,21 @@ export default function RegisterPage() {
         })
       })
 
-      const data = await response.json()
+      const regResult = await response.json()
 
-      if (!response.ok) {
-        setError(data.error || "Something went wrong")
+      if (!regResult.success) {
+        setError(regResult.error?.message || regResult.error || "Something went wrong")
         setIsLoading(false)
         return
       }
 
-      const result = await signIn("credentials", {
+      const signInResult = await signIn("credentials", {
         email: formData.email,
         password: formData.password,
         redirect: false
       })
 
-      if (result?.error) {
+      if (signInResult?.error) {
         setError("Registration successful but login failed. Please login manually.")
         setIsLoading(false)
         return

@@ -4,22 +4,25 @@ import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { generateVariant } from "@/lib/services/ai-service"
 import { requireAIAccess } from "@/lib/ai/access"
+import { success, error, unauthorized, forbidden, notFound, serverError, parseBody } from "@/lib/api-response"
 
 export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      return unauthorized()
     }
 
     const hasAccess = await requireAIAccess(session.user.id)
     if (!hasAccess) {
-      return NextResponse.json({ error: "AI variant generation requires a premium subscription", premiumRequired: true }, { status: 403 })
+      return forbidden("AI variant generation requires a premium subscription")
     }
 
-    const { questionId } = await request.json()
+    const { data, error: bodyError } = await parseBody<{ questionId: string }>(request)
+    if (bodyError) return bodyError
+    const { questionId } = data!
     if (!questionId) {
-      return NextResponse.json({ error: "questionId is required" }, { status: 400 })
+      return error("VALIDATION_ERROR", "questionId is required")
     }
 
     const question = await prisma.question.findUnique({
@@ -28,7 +31,7 @@ export async function POST(request: Request) {
     })
 
     if (!question) {
-      return NextResponse.json({ error: "Question not found" }, { status: 404 })
+      return notFound("Question not found")
     }
 
     const result = await generateVariant({
@@ -42,7 +45,7 @@ export async function POST(request: Request) {
     })
 
     if (!result) {
-      return NextResponse.json({ error: "AI variant generation failed", message: "AI service unavailable" }, { status: 503 })
+      return error("SERVICE_UNAVAILABLE", "AI service unavailable", 503)
     }
 
     const variant = await prisma.aIVariant.create({
@@ -60,12 +63,9 @@ export async function POST(request: Request) {
       },
     })
 
-    return NextResponse.json({ variant })
+    return success({ variant })
   } catch (error: any) {
     console.error("AI variant generation error:", error)
-    return NextResponse.json(
-      { error: "Failed to generate variant", message: error?.message ?? "Unknown error" },
-      { status: 500 }
-    )
+    return serverError(error)
   }
 }

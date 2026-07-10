@@ -2,11 +2,13 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import { NotificationType } from "@prisma/client"
+import { success, error, unauthorized, serverError, parseBody } from "@/lib/api-response"
 
 export async function GET() {
   const session = await getServerSession(authOptions).catch(() => null)
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    return unauthorized()
   }
   try {
     const notifications = await prisma.notification.findMany({
@@ -14,44 +16,48 @@ export async function GET() {
       orderBy: { createdAt: "desc" },
       take: 50,
     })
-    return NextResponse.json(notifications)
+    return success(notifications)
   } catch {
-    return NextResponse.json([])
+    return success([])
   }
 }
 
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions).catch(() => null)
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    return unauthorized()
   }
   try {
-    const { type, title, message, actionUrl } = await request.json()
+    const { data, error: bodyError } = await parseBody<{ type: string; title: string; message?: string; actionUrl?: string }>(request)
+    if (bodyError) return bodyError
+    const { type, title, message, actionUrl } = data!
     if (!type || !title) {
-      return NextResponse.json({ error: "type and title are required" }, { status: 400 })
+      return error("VALIDATION_ERROR", "type and title are required")
     }
     const notification = await prisma.notification.create({
       data: {
         userId: session.user.id,
-        type,
+        type: type as NotificationType,
         title,
         message: message ?? "",
         actionUrl: actionUrl ?? null,
       },
     })
-    return NextResponse.json(notification, { status: 201 })
+    return success(notification, 201)
   } catch {
-    return NextResponse.json({ error: "Failed to create notification" }, { status: 500 })
+    return serverError()
   }
 }
 
 export async function PATCH(request: Request) {
   const session = await getServerSession(authOptions).catch(() => null)
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    return unauthorized()
   }
   try {
-    const { id, read } = await request.json()
+    const { data, error: bodyError } = await parseBody<{ id?: string; read?: boolean }>(request)
+    if (bodyError) return bodyError
+    const { id, read } = data!
     if (id) {
       await prisma.notification.updateMany({
         where: { id, userId: session.user.id },
@@ -63,8 +69,8 @@ export async function PATCH(request: Request) {
         data: { read: true },
       })
     }
-    return NextResponse.json({ success: true })
+    return success({ success: true })
   } catch {
-    return NextResponse.json({ error: "Failed to update notification" }, { status: 500 })
+    return serverError()
   }
 }

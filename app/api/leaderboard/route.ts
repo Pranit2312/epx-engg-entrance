@@ -2,11 +2,12 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import { success, unauthorized } from "@/lib/api-response"
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions).catch(() => null)
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    return unauthorized()
   }
 
   const url = new URL(request.url)
@@ -20,7 +21,7 @@ export async function GET(request: Request) {
       select: { city: true, college: true },
     })
 
-    let whereClause: any = {}
+    const whereClause: any = {}
     if (filter === "city" && user?.city) {
       whereClause.city = user.city
     }
@@ -75,15 +76,9 @@ export async function GET(request: Request) {
 
     const currentUserEntry = entries.find((e) => e.isCurrentUser)
 
-    return NextResponse.json({
-      entries,
-      currentUser: currentUserEntry ?? null,
-      totalParticipants: leaderboardData.length,
-      period,
-      filter,
-    })
-  } catch (error) {
-    console.error("Leaderboard API error:", error)
-    return NextResponse.json({ entries: [], currentUser: null, totalParticipants: 0, period, filter })
+    return success({ entries, currentUser: currentUserEntry ?? null, totalParticipants: leaderboardData.length, period, filter })
+  } catch (err) {
+    console.error("Leaderboard API error:", err)
+    return success({ entries: [], currentUser: null, totalParticipants: 0, period, filter })
   }
 }

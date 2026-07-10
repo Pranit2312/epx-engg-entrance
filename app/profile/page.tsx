@@ -72,7 +72,9 @@ export default function ProfilePage() {
       try {
         const res = await fetch("/api/profile")
         if (!res.ok) throw new Error("Failed to load profile")
-        const data: UserProfile = await res.json()
+        const result = await res.json()
+        if (!result.success) throw new Error(result.error?.message || "Failed to load profile")
+        const data: UserProfile = result.data
         setProfile(data)
         setForm({
           name: data.name || "",
@@ -134,13 +136,14 @@ export default function ProfilePage() {
           preferredSubjects: form.preferredSubjects,
         }),
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || "Failed to save")
+      const result = await res.json()
+      if (!res.ok || !result.success) throw new Error(result.error?.message || "Failed to save")
 
-      setProfile(data)
+      const { profile } = result.data
+      setProfile(profile)
       setEditing(false)
       setSuccess("Profile updated successfully")
-      await update({ name: data.name, image: data.image })
+      await update({ name: profile.name, image: profile.image })
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save profile")
     } finally {

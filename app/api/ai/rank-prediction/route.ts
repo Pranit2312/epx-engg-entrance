@@ -4,17 +4,18 @@ import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { predictRank } from "@/lib/services/ai-service"
 import { requireAIAccess } from "@/lib/ai/access"
+import { success, error, unauthorized, forbidden, serverError } from "@/lib/api-response"
 
 export async function GET(request: Request) {
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      return unauthorized()
     }
 
     const hasAccess = await requireAIAccess(session.user.id)
     if (!hasAccess) {
-      return NextResponse.json({ error: "AI rank prediction requires a premium subscription", premiumRequired: true }, { status: 403 })
+      return forbidden("AI rank prediction requires a premium subscription")
     }
 
     const user = await prisma.user.findUnique({
@@ -29,10 +30,7 @@ export async function GET(request: Request) {
     })
 
     if (attempts.length === 0) {
-      return NextResponse.json({ 
-        error: "No test attempts found",
-        message: "Complete at least one test to get rank prediction"
-      }, { status: 400 })
+      return error("VALIDATION_ERROR", "Complete at least one test to get rank prediction")
     }
 
     const currentScore = attempts[0].score
@@ -41,17 +39,9 @@ export async function GET(request: Request) {
 
     const prediction = await predictRank(currentScore, targetExam, historicalScores)
 
-    return NextResponse.json({
-      currentScore,
-      targetExam,
-      prediction,
-      historicalScores
-    })
+    return success({ currentScore, targetExam, prediction, historicalScores })
   } catch (error: any) {
     console.error("Rank prediction error:", error)
-    return NextResponse.json(
-      { error: "Failed to predict rank", message: error?.message ?? "Unknown error" },
-      { status: 500 }
-    )
+    return serverError(error)
   }
 }

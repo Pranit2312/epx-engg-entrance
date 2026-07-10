@@ -53,7 +53,7 @@ export default function HelpPage() {
     if (!session?.user?.id) return
     fetch("/api/tickets")
       .then((r) => r.json())
-      .then((data) => { if (Array.isArray(data)) setTickets(data) })
+      .then((data) => { if (data.success && Array.isArray(data.data)) setTickets(data.data) })
       .catch(() => {})
       .finally(() => setLoading(false))
   }, [session?.user?.id])
@@ -73,8 +73,8 @@ export default function HelpPage() {
         body: JSON.stringify({ subject, description, priority }),
       })
       if (!res.ok) throw new Error("Failed to create ticket")
-      const ticket = await res.json()
-      setTickets((prev) => [ticket, ...prev])
+      const result = await res.json()
+      if (result.success) setTickets((prev) => [result.data, ...prev])
       setShowForm(false)
       setSubject("")
       setDescription("")

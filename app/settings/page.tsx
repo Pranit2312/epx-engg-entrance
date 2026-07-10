@@ -52,9 +52,11 @@ export default function SettingsPage() {
       try {
         const res = await fetch("/api/settings")
         if (!res.ok) throw new Error("Failed to load settings")
-        const data = await res.json()
-        setEmailNotifications(data.emailNotifications)
-        setTestReminders(data.testReminders)
+        const result = await res.json()
+        if (result.success) {
+          setEmailNotifications(result.data.emailNotifications)
+          setTestReminders(result.data.testReminders)
+        }
       } catch {
         setError("Could not load settings.")
       } finally {
@@ -96,8 +98,8 @@ export default function SettingsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ currentPassword: passwordForm.current, newPassword: passwordForm.next }),
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error)
+      const result = await res.json()
+      if (!result.success) throw new Error(result.error?.message || result.error || "Failed to change password")
       setPasswordOpen(false)
       setPasswordForm({ current: "", next: "", confirm: "" })
       setSuccess("Password updated successfully")
@@ -117,8 +119,8 @@ export default function SettingsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ password: deletePassword }),
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error)
+      const result = await res.json()
+      if (!result.success) throw new Error(result.error?.message || result.error || "Failed to delete account")
       await signOut({ callbackUrl: "/" })
     } catch (err) {
       setDeleteError(err instanceof Error ? err.message : "Failed to delete account")

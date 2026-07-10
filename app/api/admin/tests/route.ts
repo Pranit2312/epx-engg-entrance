@@ -2,12 +2,13 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import { success, error, unauthorized, serverError, parseBody } from "@/lib/api-response"
 
 export async function GET() {
   try {
     const session = await getServerSession(authOptions)
-    if (!session || session.user.role !== "ADMIN") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    if (!session || session.user?.role !== "ADMIN") {
+      return unauthorized()
     }
 
     const tests = await prisma.mockTest.findMany({
@@ -19,22 +20,29 @@ export async function GET() {
       }
     })
 
-    return NextResponse.json({ tests })
+    return success({ tests })
   } catch (error) {
     console.error("Failed to fetch tests:", error)
-    return NextResponse.json({ error: "Failed to fetch tests" }, { status: 500 })
+    return serverError(error)
   }
 }
 
 export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions)
-    if (!session || session.user.role !== "ADMIN") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    if (!session || session.user?.role !== "ADMIN") {
+      return unauthorized()
     }
 
-    const body = await request.json()
-    const { name, examType, duration, difficulty, description, sections, questionIds } = body
+    const { data: body, error: bodyError } = await parseBody<any>(request)
+    if (bodyError) return bodyError
+    const { name, examType, duration, difficulty, description, sections, questionIds } = body!
+
+    if (!name || !examType || !duration) {
+      return error("VALIDATION_ERROR", "Missing required fields: name, examType, duration")
+    }
+
+    const qIds = questionIds ?? []
 
     // Create the test
     const test = await prisma.mockTest.create({
@@ -44,7 +52,7 @@ export async function POST(request: Request) {
         duration,
         difficulty,
         description,
-        totalQuestions: questionIds.length,
+        totalQuestions: qIds.length,
         isPublished: false,
         marksPerQuestion: 4,
         negativeMarking: 1,
@@ -67,16 +75,16 @@ export async function POST(request: Request) {
     }
 
     // Link questions to the test
-    for (const questionId of questionIds) {
+    for (const questionId of qIds) {
       await prisma.question.update({
         where: { id: questionId },
         data: { mockTestId: test.id },
       })
     }
 
-    return NextResponse.json({ test }, { status: 201 })
+    return success({ test }, 201)
   } catch (error) {
     console.error("Failed to create test:", error)
-    return NextResponse.json({ error: "Failed to create test" }, { status: 500 })
+    return serverError(error)
   }
 }

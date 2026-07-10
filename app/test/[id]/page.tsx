@@ -96,8 +96,11 @@ export default function TestAttemptPage() {
           fetch(`/api/tests/${testId}/questions`).catch(() => null),
         ])
 
-        const testsData = testsRes?.ok ? await testsRes.json().catch(() => []) : []
-        const questionsData = questionsRes?.ok ? await questionsRes.json().catch(() => ({ questions: [], fallback: true })) : { questions: [], fallback: true }
+        const testsJson = testsRes?.ok ? await testsRes.json().catch(() => ({})) : {}
+        const questionsJson = questionsRes?.ok ? await questionsRes.json().catch(() => ({})) : {}
+
+        const testsData = testsJson.success ? testsJson.data : []
+        const questionsData = questionsJson.success ? questionsJson.data : { questions: [], fallback: true }
 
         const foundTest = Array.isArray(testsData) ? testsData.find((item: TestItem) => item.id === testId) : null
         if (!foundTest) {
@@ -108,7 +111,15 @@ export default function TestAttemptPage() {
 
         setTest(foundTest)
 
-        let qs = questionsData.questions
+        const attemptCheck = await fetch(`/api/attempts?testId=${testId}`).catch(() => null)
+        const attemptJson = attemptCheck?.ok ? await attemptCheck.json().catch(() => ({})) : {}
+        if (attemptJson.success && attemptJson.data?.length > 0) {
+          setLoadError("already-attempted")
+          setIsLoading(false)
+          return
+        }
+
+        const qs = questionsData.questions
         if (!qs || qs.length === 0) {
           setLoadError("No questions available for this test. Please contact admin.")
           setIsLoading(false)
@@ -263,7 +274,7 @@ export default function TestAttemptPage() {
       })
 
       const payload = await response.json()
-      attemptId = payload?.attempt?.id ?? null
+      attemptId = payload.success ? payload.data?.attempt?.id ?? null : null
       localStorage.removeItem(storageKey)
     } catch {
       attemptId = null
@@ -354,10 +365,38 @@ export default function TestAttemptPage() {
     return () => document.removeEventListener("fullscreenchange", handler)
   }, [])
 
+  useEffect(() => {
+    if (!testStarted) return
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault()
+      e.returnValue = ""
+    }
+
+    const handlePopState = () => {
+      setShowExitDialog(true)
+      window.history.pushState(null, "", window.location.href)
+    }
+
+    window.addEventListener("beforeunload", handleBeforeUnload)
+    window.history.pushState(null, "", window.location.href)
+    window.addEventListener("popstate", handlePopState)
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload)
+      window.removeEventListener("popstate", handlePopState)
+    }
+  }, [testStarted])
+
   const handleQuestionClick = (index: number) => {
     if (index < 0 || index >= questions.length) return
     trackTimeOnQuestion()
     setCurrentQuestion(index)
+  }
+
+  const handleEndTest = async () => {
+    await submitAttempt(false)
+    setShowExitDialog(false)
   }
 
   const handleSubmit = () => {
@@ -408,6 +447,23 @@ export default function TestAttemptPage() {
   }
 
   // ERROR STATE
+  if (loadError === "already-attempted") {
+    return (
+      <div className="flex min-h-screen flex-col">
+        <div className="flex flex-1 items-center justify-center px-4">
+          <div className="w-full max-w-md text-center space-y-4">
+            <CheckCircle2 className="mx-auto h-12 w-12 text-blue-400" />
+            <h2 className="text-xl font-bold">Test Already Attempted</h2>
+            <p className="text-sm text-muted-foreground">You have already taken this test. You cannot retake it again.</p>
+            <Link href="/results">
+              <Button className="rounded-xl">View My Results</Button>
+            </Link>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   if (loadError) {
     return (
       <div className="flex min-h-screen flex-col">
@@ -744,17 +800,21 @@ export default function TestAttemptPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-amber-400" />
-              Exit this test?
+              End this test?
             </DialogTitle>
             <DialogDescription>
-              Your progress is auto-saved. You can resume this test later from where you left off.
+              You have answered {answeredCount} of {questions.length} questions. If you leave now, your progress will be saved and you can resume later.
             </DialogDescription>
           </DialogHeader>
+          <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-400">
+            <p className="font-medium">Your test is still in progress.</p>
+            <p className="mt-1 text-xs text-amber-400/70">Are you sure you want to end the test? You can come back anytime to continue.</p>
+          </div>
           <DialogFooter className="gap-2 sm:gap-0">
             <Button variant="outline" onClick={() => setShowExitDialog(false)} className="rounded-xl">Continue Test</Button>
-            <Link href="/tests">
-              <Button variant="destructive" className="rounded-xl">Exit</Button>
-            </Link>
+            <Button variant="destructive" onClick={handleEndTest} disabled={isSubmitting} className="rounded-xl">
+              {isSubmitting ? "Submitting..." : "End Test"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

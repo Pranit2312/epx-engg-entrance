@@ -4,11 +4,12 @@ import { authOptions } from "@/lib/auth"
 import { analyticsService } from "@/services/analytics-service"
 import { getDashboardData } from "@/lib/data-service"
 import { prisma } from "@/lib/prisma"
+import { success, unauthorized } from "@/lib/api-response"
 
 export async function GET() {
   const session = await getServerSession(authOptions).catch(() => null)
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    return unauthorized()
   }
 
   try {
@@ -39,7 +40,7 @@ export async function GET() {
       }).catch(() => []),
     ])
 
-    return NextResponse.json({
+    return success({
       ...dash,
       currentStreak: overview.currentStreak,
       recommendedTests: overview.recommendedTests,
@@ -80,7 +81,7 @@ export async function GET() {
       },
     })
   } catch {
-    return NextResponse.json({
+    return success({
       totalTests: 0,
       testsAttempted: 0,
       averageScore: 0,

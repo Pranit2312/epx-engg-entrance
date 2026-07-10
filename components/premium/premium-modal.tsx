@@ -30,9 +30,9 @@ export function PremiumModal({ open, onClose }: Props) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action, planId }),
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || "Failed")
-      setSuccess(data.plan === "trial" ? "Free trial activated! Enjoy premium for 7 days." : "Welcome to Premium!")
+      const result = await res.json()
+      if (!result.success) throw new Error(result.error?.message || result.error || "Failed")
+      setSuccess(result.data.plan === "trial" ? "Free trial activated! Enjoy premium for 7 days." : "Welcome to Premium!")
       await update()
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong")

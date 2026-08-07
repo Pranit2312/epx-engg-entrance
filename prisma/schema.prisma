@@ -7,45 +7,45 @@ datasource db {
 }
 
 model User {
-  id                    String                    @id @default(cuid())
-  email                 String                    @unique
-  password              String
-  name                  String?
-  username              String?                   @unique
-  image                 String?
-  bio                   String?
-  role                  UserRole                  @default(STUDENT)
-  targetExam            ExamType?
-  preferredSubjects     String[]                  @default([])
-  emailNotifications    Boolean                   @default(true)
-  testReminders         Boolean                   @default(true)
-  isPremium             Boolean                   @default(false)
-  premiumPlan           PremiumPlan?
-  premiumStartDate      DateTime?
-  premiumEndDate        DateTime?
-  streak                Int                       @default(0)
-  lastActiveDate        DateTime?
-  city                  String?
-  college               String?
-  createdAt             DateTime                  @default(now())
-  updatedAt             DateTime                  @updatedAt
-  attempts              Attempt[]
-  answerRecords         UserMockTestQuestionAttemptAnswer[]
-  bookmarks             Bookmark[]
-  subscriptions         Subscription[]
-  payments              Payment[]
-  leaderboardEntries    Leaderboard[]
-  notifications         Notification[]
-  supportTickets        SupportTicket[]
-  studyPlans            StudyPlan[]
-  aiRecommendations    AIRecommendation[]
-  chatHistories         ChatHistory[]
-  questionBookmarks     QuestionBookmark[]
-  aiAnalyses            AIAnalysis[]
-  weakTopics            WeakTopic[]
-  topicAnalytics        TopicAnalytics[]
-  createdTests          MockTest[]        @relation("TestCreator")
-  createdVariants       AIVariant[]       @relation("VariantCreator")
+  id                 String                              @id @default(cuid())
+  email              String                              @unique
+  password           String
+  name               String?
+  username           String?                             @unique
+  image              String?
+  bio                String?
+  role               UserRole                            @default(STUDENT)
+  targetExam         ExamType?
+  preferredSubjects  String[]                            @default([])
+  emailNotifications Boolean                             @default(true)
+  testReminders      Boolean                             @default(true)
+  isPremium          Boolean                             @default(false)
+  premiumPlan        PremiumPlan?
+  premiumStartDate   DateTime?
+  premiumEndDate     DateTime?
+  streak             Int                                 @default(0)
+  lastActiveDate     DateTime?
+  city               String?
+  college            String?
+  createdAt          DateTime                            @default(now())
+  updatedAt          DateTime                            @updatedAt
+  aiAnalyses         AIAnalysis[]
+  aiRecommendations  AIRecommendation[]
+  createdVariants    AIVariant[]                         @relation("VariantCreator")
+  attempts           Attempt[]
+  bookmarks          Bookmark[]
+  chatHistories      ChatHistory[]
+  leaderboardEntries Leaderboard[]
+  createdTests       MockTest[]                          @relation("TestCreator")
+  notifications      Notification[]
+  payments           Payment[]
+  questionBookmarks  QuestionBookmark[]
+  studyPlans         StudyPlan[]
+  subscriptions      Subscription[]
+  supportTickets     SupportTicket[]
+  topicAnalytics     TopicAnalytics[]
+  answerRecords      UserMockTestQuestionAttemptAnswer[]
+  weakTopics         WeakTopic[]
 }
 
 model Admin {
@@ -58,70 +58,70 @@ model Admin {
 }
 
 model MockTest {
-  id             String          @id @default(cuid())
-  name           String
-  examType       ExamType
-  subject        String?
-  duration       Int
-  totalQuestions Int
-  difficulty     Difficulty
-  description    String?
-  marksPerQuestion Int            @default(4)
-  negativeMarking Float           @default(1)
-  isPublished    Boolean         @default(false)
-  isAIGenerated  Boolean         @default(false)
-  createdBy      String?
-  creator        User?           @relation("TestCreator", fields: [createdBy], references: [id], onDelete: SetNull)
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
-  attempts       Attempt[]
-  questions      Question[]
-  bookmarks      Bookmark[]
-  testSections   TestSection[]
+  id               String        @id @default(cuid())
+  name             String
+  examType         ExamType
+  subject          String?
+  duration         Int
+  totalQuestions   Int
+  difficulty       Difficulty
+  description      String?
+  marksPerQuestion Int           @default(4)
+  negativeMarking  Float         @default(1)
+  isPublished      Boolean       @default(false)
+  isAIGenerated    Boolean       @default(false)
+  createdBy        String?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  attempts         Attempt[]
+  bookmarks        Bookmark[]
+  creator          User?         @relation("TestCreator", fields: [createdBy], references: [id])
+  questions        Question[]
+  testSections     TestSection[]
 }
 
 model TestSection {
-  id          String     @id @default(cuid())
-  mockTestId   String
-  subject     String
+  id            String     @id @default(cuid())
+  mockTestId    String
+  subject       String
   questionCount Int
-  marks       Int
-  mockTest    MockTest   @relation(fields: [mockTestId], references: [id], onDelete: Cascade)
-  questions   Question[]
+  marks         Int
+  questions     Question[]
+  mockTest      MockTest   @relation(fields: [mockTestId], references: [id], onDelete: Cascade)
 
-  @@index([mockTestId])
   @@unique([mockTestId, subject])
+  @@index([mockTestId])
 }
 
-model   Question {
-  id              String          @id @default(cuid())
-  mockTestId      String?
-  testSectionId   String?
-  questionText    String
-  options         String[]
-  correctOption   Int
-  explanation     String?
-  subject         String
-  chapter         String?
-  topic           String?
-  difficulty      Difficulty
-  examType        ExamType
-  isPYQ           Boolean         @default(false)
-  pyqYear         Int?
-  pyqSession       String?
-  order           Int
-  embedding       String
-  imagePath       String?
-  marks           Int             @default(4)
-  negativeMarks   Float           @default(1)
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
-  mockTest        MockTest?       @relation(fields: [mockTestId], references: [id], onDelete: Cascade)
-  testSection     TestSection?    @relation(fields: [testSectionId], references: [id], onDelete: Cascade)
-  answerRecords   UserMockTestQuestionAttemptAnswer[]
+model Question {
+  id                String                              @id @default(cuid())
+  mockTestId        String?
+  testSectionId     String?
+  questionText      String
+  options           String[]
+  correctOption     Int
+  explanation       String?
+  subject           String
+  chapter           String?
+  topic             String?
+  difficulty        Difficulty
+  examType          ExamType
+  isPYQ             Boolean                             @default(false)
+  pyqYear           Int?
+  pyqSession        String?
+  order             Int
+  embedding         String
+  createdAt         DateTime                            @default(now())
+  updatedAt         DateTime                            @updatedAt
+  imagePath         String?
+  marks             Int                                 @default(4)
+  negativeMarks     Float                               @default(1)
+  variants          AIVariant[]
+  mockTest          MockTest?                           @relation(fields: [mockTestId], references: [id], onDelete: Cascade)
+  testSection       TestSection?                        @relation(fields: [testSectionId], references: [id], onDelete: Cascade)
   questionBookmarks QuestionBookmark[]
-  topicAnalytics  TopicAnalytics[]
-  variants        AIVariant[]
+  topicAnalytics    TopicAnalytics[]
+  answerRecords     UserMockTestQuestionAttemptAnswer[]
 
   @@index([mockTestId])
   @@index([testSectionId])
@@ -150,10 +150,10 @@ model Attempt {
   submittedAt     DateTime?
   createdAt       DateTime                            @default(now())
   updatedAt       DateTime                            @updatedAt
+  aiAnalyses      AIAnalysis[]
   mockTest        MockTest                            @relation(fields: [mockTestId], references: [id], onDelete: Cascade)
   user            User                                @relation(fields: [userId], references: [id], onDelete: Cascade)
   answerRecords   UserMockTestQuestionAttemptAnswer[]
-  aiAnalyses      AIAnalysis[]
 
   @@index([userId, mockTestId])
   @@index([mockTestId])
@@ -173,13 +173,13 @@ model UserMockTestQuestionAttemptAnswer {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   attempt         Attempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   question        Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@unique([attemptId, questionId])
   @@index([attemptId])
   @@index([questionId])
   @@index([userId])
-  @@unique([attemptId, questionId])
 }
 
 model Bookmark {
@@ -187,8 +187,8 @@ model Bookmark {
   userId    String
   testId    String
   createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   test      MockTest @relation(fields: [testId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, testId])
 }
@@ -199,119 +199,119 @@ model QuestionBookmark {
   questionId String
   notes      String?
   createdAt  DateTime @default(now())
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, questionId])
 }
 
 model Subscription {
-  id              String         @id @default(cuid())
-  userId          String
-  plan            PremiumPlan
-  status          SubscriptionStatus
-  startDate       DateTime
-  endDate         DateTime
-  razorpayOrderId String?
+  id                String             @id @default(cuid())
+  userId            String
+  plan              PremiumPlan
+  status            SubscriptionStatus
+  startDate         DateTime
+  endDate           DateTime
+  razorpayOrderId   String?
   razorpayPaymentId String?
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
-  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  payments        Payment[]
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  payments          Payment[]
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
 }
 
 model Payment {
-  id              String        @id @default(cuid())
-  userId          String
-  subscriptionId  String?
-  amount          Float
-  currency        String        @default("INR")
-  status          PaymentStatus
-  razorpayOrderId String?    @unique
-  razorpayPaymentId String? @unique
+  id                String        @id @default(cuid())
+  userId            String
+  subscriptionId    String?
+  amount            Float
+  currency          String        @default("INR")
+  status            PaymentStatus
+  razorpayOrderId   String?       @unique
+  razorpayPaymentId String?       @unique
   razorpaySignature String?
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  subscription    Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  subscription      Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  user              User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([subscriptionId])
 }
 
 model Leaderboard {
-  id           String   @id @default(cuid())
-  userId       String
-  examType     ExamType
-  period       LeaderboardPeriod
-  rank         Int
-  score        Int
-  testsTaken   Int
-  accuracy     Float
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id         String            @id @default(cuid())
+  userId     String
+  examType   ExamType
+  period     LeaderboardPeriod
+  rank       Int
+  score      Int
+  testsTaken Int
+  accuracy   Float
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+  user       User              @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, examType, period])
   @@index([examType, period, rank])
 }
 
 model Notification {
-  id        String             @id @default(cuid())
+  id        String           @id @default(cuid())
   userId    String
   type      NotificationType
   title     String
   message   String
-  read      Boolean            @default(false)
+  read      Boolean          @default(false)
   actionUrl String?
-  createdAt DateTime           @default(now())
-  user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime         @default(now())
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, read])
 }
 
 model SupportTicket {
-  id          String           @id @default(cuid())
+  id          String         @id @default(cuid())
   userId      String
   subject     String
   description String
-  status      TicketStatus     @default(OPEN)
-  priority    TicketPriority   @default(MEDIUM)
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
-  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status      TicketStatus   @default(OPEN)
+  priority    TicketPriority @default(MEDIUM)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, status])
 }
 
 model StudyPlan {
-  id          String   @id @default(cuid())
-  userId      String
-  title       String
-  description String?
-  planData    Json
-  startDate   DateTime
-  endDate     DateTime
+  id            String   @id @default(cuid())
+  userId        String
+  title         String
+  description   String?
+  planData      Json
+  startDate     DateTime
+  endDate       DateTime
   isAIGenerated Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
 }
 
 model AIRecommendation {
-  id          String   @id @default(cuid())
-  userId      String
-  type        RecommendationType
-  content     Json
-  reason      String?
-  priority    Int      @default(0)
-  isViewed    Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id        String             @id @default(cuid())
+  userId    String
+  type      RecommendationType
+  content   Json
+  reason    String?
+  priority  Int                @default(0)
+  isViewed  Boolean            @default(false)
+  createdAt DateTime           @default(now())
+  user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, isViewed])
 }
@@ -329,20 +329,20 @@ model ChatHistory {
 }
 
 model TopicAnalytics {
-  id          String   @id @default(cuid())
-  userId      String
-  questionId  String
-  subject     String
-  chapter     String
-  topic       String?
-  accuracy    Float
-  attempts    Int
-  timeAvg     Int
-  weakArea    Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  question    Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  id         String   @id @default(cuid())
+  userId     String
+  questionId String
+  subject    String
+  chapter    String
+  topic      String?
+  accuracy   Float
+  attempts   Int
+  timeAvg    Int
+  weakArea   Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, subject, chapter])
   @@index([questionId])
@@ -359,46 +359,70 @@ model AIAnalysis {
   predictedScore  Int?
   studyPlanRef    String?
   createdAt       DateTime @default(now())
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   attempt         Attempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, attemptId])
   @@index([userId, createdAt])
 }
 
 model WeakTopic {
-  id          String   @id @default(cuid())
-  userId      String
-  subject     String
-  chapter     String
-  topic       String?
-  accuracy    Float
-  attempts    Int
-  detectedAt  DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id         String   @id @default(cuid())
+  userId     String
+  subject    String
+  chapter    String
+  topic      String?
+  accuracy   Float
+  attempts   Int
+  detectedAt DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, subject, chapter, topic])
   @@index([userId, accuracy])
 }
 
 model AIVariant {
-  id              String   @id @default(cuid())
+  id                 String     @id @default(cuid())
   originalQuestionId String
-  variantText     String
-  options         String[]
-  correctOption   Int
-  explanation     String
-  subject         String
-  chapter         String?
-  topic           String?
-  difficulty      Difficulty @default(MEDIUM)
-  createdBy       String?
-  creator         User?      @relation("VariantCreator", fields: [createdBy], references: [id], onDelete: SetNull)
-  createdAt       DateTime   @default(now())
-  originalQuestion Question  @relation(fields: [originalQuestionId], references: [id], onDelete: Cascade)
+  variantText        String
+  options            String[]
+  correctOption      Int
+  explanation        String
+  subject            String
+  chapter            String?
+  topic              String?
+  createdBy          String?
+  createdAt          DateTime   @default(now())
+  difficulty         Difficulty @default(MEDIUM)
+  creator            User?      @relation("VariantCreator", fields: [createdBy], references: [id])
+  originalQuestion   Question   @relation(fields: [originalQuestionId], references: [id], onDelete: Cascade)
 
   @@index([originalQuestionId])
+}
+
+model ExamConfig {
+  id                  String   @id @default(cuid())
+  examType            ExamType @unique
+  totalQuestions      Int
+  duration            Int
+  marksPerQuestion    Int      @default(4)
+  negativeMarking     Float    @default(1)
+  subjects            String[] @default([])
+  questionsPerSubject Int[]    @default([])
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+model SyllabusChapter {
+  id       String   @id @default(cuid())
+  examType ExamType
+  subject  String
+  chapter  String
+  topics   String[]
+
+  @@unique([examType, subject, chapter])
+  @@index([examType, subject])
 }
 
 enum UserRole {
@@ -476,30 +500,6 @@ enum ExamType {
   WBJEE
   GUJCET
   OTHER
-}
-
-model ExamConfig {
-  id                String   @id @default(cuid())
-  examType          ExamType @unique
-  totalQuestions    Int
-  duration          Int
-  marksPerQuestion  Int      @default(4)
-  negativeMarking   Float    @default(1)
-  subjects          String[] @default([])
-  questionsPerSubject Int[]  @default([])
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-}
-
-model SyllabusChapter {
-  id       String  @id @default(cuid())
-  examType ExamType
-  subject  String
-  chapter  String
-  topics   String[]
-
-  @@unique([examType, subject, chapter])
-  @@index([examType, subject])
 }
 
 enum Difficulty {

@@ -1,5 +1,6 @@
 import bcrypt from "bcryptjs"
-import type { Prisma, ExamType } from "@prisma/client"
+import type { Prisma } from "@prisma/client"
+import type { ExamType } from "@/lib/profile-types"
 import { prisma } from "@/lib/prisma"
 import type { UpdateProfileInput, UpdateSettingsInput, UserProfile } from "@/lib/profile-types"
 import { mockTests as fallbackTests } from "@/lib/data/mock-tests"

@@ -1,4 +1,14 @@
-import type { ExamType } from "@prisma/client"
+export type ExamType =
+  | "JEE_MAIN"
+  | "JEE_ADVANCED"
+  | "MHT_CET"
+  | "BITSAT"
+  | "VITEEE"
+  | "COMEDK"
+  | "KCET"
+  | "WBJEE"
+  | "GUJCET"
+  | "OTHER"
 import { EXAMS } from "@/config/exams"
 import { SUBJECTS } from "@/config/subjects"
 

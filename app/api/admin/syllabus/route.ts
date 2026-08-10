@@ -1,4 +1,3 @@
-import { ExamType } from "@prisma/client"
 import { NextRequest } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
@@ -43,17 +42,8 @@ export async function POST(request: Request) {
 
     const { examType, subject, chapter, topics } = body!
 
-    // Convert string to Prisma enum
-    const examTypeEnum = examType as ExamType
-
     const existing = await prisma.syllabusChapter.findUnique({
-      where: {
-        examType_subject_chapter: {
-          examType: examTypeEnum,
-          subject,
-          chapter,
-        },
-      },
+      where: { examType_subject_chapter: { examType, subject, chapter } },
     })
 
     if (existing) {
@@ -64,14 +54,7 @@ export async function POST(request: Request) {
       )
     }
 
-    const record = await prisma.syllabusChapter.create({
-      data: {
-        examType: examTypeEnum,
-        subject,
-        chapter,
-        topics: topics || [],
-      },
-    })
+    const record = await prisma.syllabusChapter.create({ data: { examType, subject, chapter, topics: topics || [] } })
 
     return success({ chapter: record })
   } catch (error) {

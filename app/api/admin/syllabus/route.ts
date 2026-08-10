@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from "next/server"
+import { ExamType } from "@prisma/client"
+import { NextRequest } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
@@ -26,19 +27,52 @@ export async function GET(request: NextRequest) {
 export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions)
+
     if (!session || session.user?.role !== "ADMIN") {
       return unauthorized()
     }
-    const { data: body, error: bodyError } = await parseBody<{ examType: string; subject: string; chapter: string; topics?: string[] }>(request)
+
+    const { data: body, error: bodyError } = await parseBody<{
+      examType: string
+      subject: string
+      chapter: string
+      topics?: string[]
+    }>(request)
+
     if (bodyError) return bodyError
+
     const { examType, subject, chapter, topics } = body!
+
+    // Convert string to Prisma enum
+    const examTypeEnum = examType as ExamType
+
     const existing = await prisma.syllabusChapter.findUnique({
-      where: { examType_subject_chapter: { examType, subject, chapter } },
+      where: {
+        examType_subject_chapter: {
+          examType: examTypeEnum,
+          subject,
+          chapter,
+        },
+      },
     })
+
     if (existing) {
-      return error("CONFLICT", "Chapter already exists for this exam and subject", 409)
+      return error(
+        "CONFLICT",
+        "Chapter already exists for this exam and subject",
+        409
+      )
     }
-    const record = await prisma.syllabusChapter.create({ data: { examType, subject, chapter, topics: topics || [] } })
+
+    const record = await prisma.syllabusChapter.create({
+      data: {
+        examType: examTypeEnum,
+        subject,
+        chapter,
+        topics: topics || [],
+      },
+    })
+
     return success({ chapter: record })
   } catch (error) {
     return serverError(error)

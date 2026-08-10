@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import { ExamType } from "@prisma/client"
 import { success, error, unauthorized, serverError, parseBody } from "@/lib/api-response"
 
 export async function GET(request: NextRequest) {
@@ -33,12 +34,12 @@ export async function POST(request: Request) {
     if (bodyError) return bodyError
     const { examType, subject, chapter, topics } = body!
     const existing = await prisma.syllabusChapter.findUnique({
-      where: { examType_subject_chapter: { examType, subject, chapter } },
+      where: { examType_subject_chapter: { examType: examType as ExamType, subject, chapter } },
     })
     if (existing) {
       return error("CONFLICT", "Chapter already exists for this exam and subject", 409)
     }
-    const record = await prisma.syllabusChapter.create({ data: { examType, subject, chapter, topics: topics || [] } })
+    const record = await prisma.syllabusChapter.create({ data: { examType: examType as ExamType, subject, chapter, topics: topics || [] } })
     return success({ chapter: record })
   } catch (error) {
     return serverError(error)

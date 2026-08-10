@@ -2,7 +2,6 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-import { ExamType } from "@prisma/client"
 import { seedDefaultWeakTopics } from "@/lib/services/analytics"
 import { success, error, unauthorized, notFound, serverError, parseBody } from "@/lib/api-response"
 
@@ -26,7 +25,7 @@ export async function POST(request: Request) {
     }
 
     const updateData: Record<string, unknown> = {}
-    if (targetExam) updateData.targetExam = targetExam as ExamType
+    if (targetExam) updateData.targetExam = targetExam
     if (preferredSubjects) updateData.preferredSubjects = preferredSubjects
 
     await prisma.user.update({

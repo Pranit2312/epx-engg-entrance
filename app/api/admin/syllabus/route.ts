@@ -2,6 +2,7 @@ import { NextRequest } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import type { ExamType } from "@/lib/profile-types"
 import { success, error, unauthorized, serverError, parseBody } from "@/lib/api-response"
 
 export async function GET(request: NextRequest) {
@@ -32,7 +33,7 @@ export async function POST(request: Request) {
     }
 
     const { data: body, error: bodyError } = await parseBody<{
-      examType: string
+      examType: ExamType
       subject: string
       chapter: string
       topics?: string[]

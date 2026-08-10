@@ -9,7 +9,8 @@
     "predev": "node -e \"try{require('fs').unlinkSync('nul')}catch(e){}\"",
     "dev": "next dev",
     "clean": "node -e \"try{require('fs').rmSync('.next',{recursive:true,force:true})}catch(e){}\"",
-    "build": "next build",
+    "postinstall": "prisma generate",
+    "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint",
     "seed": "node --env-file=.env.local --import tsx prisma/seed.ts"

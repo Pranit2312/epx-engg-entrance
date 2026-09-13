@@ -1,7 +1,10 @@
+"use client"
+
 import Link from "next/link"
+import { useSession } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { Navbar } from "@/components/navbar"
-import { ArrowRight, BookOpen, Clock3, Sparkles, Target, TrendingUp, Users, Zap, ChevronRight } from "lucide-react"
+import { ArrowRight, BookOpen, Clock3, Sparkles, Target, TrendingUp, Users, Zap } from "lucide-react"
 
 const features = [
   { icon: BookOpen, title: "Adaptive practice", description: "Switch between full-length mocks and quick revision sets with a single tap.", gradient: "from-blue-500 to-cyan-500" },
@@ -19,6 +22,8 @@ const stats = [
 ]
 
 export default function Home() {
+  const { data: session } = useSession()
+
   return (
     <div className="flex min-h-screen flex-col">
       <div className="fixed inset-0 pointer-events-none">
@@ -46,9 +51,9 @@ export default function Home() {
                 EPX is your AI-powered engineering exam preparation platform — immersive mock tests, live progress insights, and polished study workflows.
               </p>
               <div className="flex flex-col gap-3 sm:flex-row">
-                <Link href="/register">
+                <Link href={session ? "/dashboard" : "/register"}>
                   <Button size="lg" className="btn-gradient px-8 h-11 text-base">
-                    Create account
+                    {session ? "Go to dashboard" : "Create account"}
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </Link>

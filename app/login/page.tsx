@@ -121,6 +121,12 @@ export default function LoginPage() {
                 </div>
               </div>
 
+              <div className="text-right -mt-2">
+                <Link href="/forgot-password" className="text-sm text-primary hover:underline font-medium">
+                  Forgot password?
+                </Link>
+              </div>
+
               <Button type="submit" className="w-full btn-gradient h-11 text-base" disabled={isLoading}>
                 {isLoading ? (
                   <>
@@ -137,7 +143,7 @@ export default function LoginPage() {
             </form>
 
             <div className="mt-6 text-center text-sm">
-              <span className="text-muted-foreground">Don't have an account? </span>
+              <span className="text-muted-foreground">Don&apos;t have an account? </span>
               <Link href="/register" className="text-primary hover:underline font-medium">
                 Create one
               </Link>

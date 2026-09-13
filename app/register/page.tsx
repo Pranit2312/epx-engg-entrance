@@ -58,7 +58,11 @@ export default function RegisterPage() {
       const regResult = await response.json()
 
       if (!regResult.success) {
-        setError(regResult.error?.message || regResult.error || "Something went wrong")
+        setError(
+          response.status === 409
+            ? "An account with this email already exists. Please sign in instead."
+            : regResult.error?.message || regResult.error || "Something went wrong"
+        )
         setIsLoading(false)
         return
       }

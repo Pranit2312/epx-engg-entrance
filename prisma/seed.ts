@@ -526,7 +526,21 @@ async function main() {
   const topicOffset = new Map<string, number>()
 
   for (const testDef of testDefs) {
-    const test = await prisma.mockTest.create({
+    const existingTest = await prisma.mockTest.findFirst({
+      where: { name: testDef.name },
+      include: { _count: { select: { questions: true } } },
+    })
+
+    if (existingTest && existingTest._count.questions > 0) {
+      await prisma.mockTest.update({
+        where: { id: existingTest.id },
+        data: { isPublished: true },
+      })
+      console.log(`  ${existingTest.name}: already populated`)
+      continue
+    }
+
+    const test = existingTest ?? await prisma.mockTest.create({
       data: {
         name: testDef.name,
         examType: testDef.examType,

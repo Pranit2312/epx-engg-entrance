@@ -65,7 +65,7 @@ export async function findUserById(id: string) {
 
 export async function findUserByEmail(email: string) {
   try {
-    return await prisma.user.findUnique({ where: { email } })
+    return await prisma.user.findUnique({ where: { email: email.trim().toLowerCase() } })
   } catch {
     return null
   }
@@ -102,6 +102,19 @@ export async function verifyPassword(candidatePassword: string, storedHash: stri
     return await bcrypt.compare(candidatePassword, storedHash)
   } catch {
     return false
+  }
+}
+
+export async function resetUserPasswordByEmail(email: string, newPassword: string) {
+  try {
+    const hashedPassword = await bcrypt.hash(newPassword, 12)
+    return await prisma.user.update({
+      where: { email },
+      data: { password: hashedPassword },
+      select: { id: true },
+    })
+  } catch {
+    return null
   }
 }
 
